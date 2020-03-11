@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{FloatType, StringType, StructField, StructType}
 
 class UnseenAlertsDataFrame(df: DataFrame, knownDataFrameName: String, colNames: Seq[String], stats: Seq[String], signatures: Option[Seq[StreamResolverSignature]])
-  extends ResolvableDataFrame with java.io.Serializable {
+  extends ResolvableDataFrame(signatures) with java.io.Serializable {
 
   // Variables
 
@@ -29,7 +29,7 @@ class UnseenAlertsDataFrame(df: DataFrame, knownDataFrameName: String, colNames:
 
   // Stats
 
-  def getKnownDataFrameStats(): Map[String, Map[String, Float]] = {
+  private def getKnownDataFrameStats: Map[String, Map[String, Float]] = {
     LoggerUtil.log.info(s"[AlertsDataFrame] Get training dataset $knownDataFrameName")
 
     // Download descriptive stats
@@ -48,7 +48,7 @@ class UnseenAlertsDataFrame(df: DataFrame, knownDataFrameName: String, colNames:
 
   private def buildCdf: DataFrame = {
     val rowEncoder = Encoders.rowEncoder(watcherSchema)
-    df.select((col(WindowColName) +: colNames.map(colName => col(colName)) :+ col(StatColName)):_*) // select cols
+    df.select(col(WindowColName) +: colNames.map(colName => col(colName)) :+ col(StatColName):_*) // select cols
       .filter(row => watchableStats.contains(row.getAs[String](schemaColIndexMap(StatColName)))) // filter stat rows
       .flatMap(row => {
         val rowStat = row.getAs[String](schemaColIndexMap(StatColName))

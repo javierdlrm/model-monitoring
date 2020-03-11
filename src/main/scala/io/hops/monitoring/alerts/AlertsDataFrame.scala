@@ -3,10 +3,10 @@ package io.hops.monitoring.alerts
 import io.hops.monitoring.streams.resolver.{ResolvableDataFrame, StreamResolverSignature}
 import io.hops.monitoring.util.Constants.Stats._
 import io.hops.monitoring.util.LoggerUtil
-import org.apache.spark.sql.{DataFrame}
+import org.apache.spark.sql.DataFrame
 
 class AlertsDataFrame(df: DataFrame, colNames: Seq[String], private var stats: Seq[String], signatures: Option[Seq[StreamResolverSignature]])
-  extends ResolvableDataFrame with java.io.Serializable {
+  extends ResolvableDataFrame(signatures) with java.io.Serializable {
 
   LoggerUtil.log.info(s"[AlertsDataFrame] Created over columns [${colNames.mkString(", ")}]")
 

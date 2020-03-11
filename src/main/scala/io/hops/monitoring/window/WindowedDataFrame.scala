@@ -40,10 +40,11 @@ class WindowedDataFrame(val df: DataFrame, timeColName: String)
   private def buildKvgd(wdf: DataFrame): KeyValueGroupedDataset[Window, Row] =
     wdf.groupByKey[Window](selectWindow)(Encoders.windowEncoder)
 
-  private def selectWindow: Row => Window = t => {
-    val windowRow = t.getAs[Row](WindowColName)
-    Window(windowRow.getAs[Timestamp](0), windowRow.getAs[Timestamp](1))
-  }
+  private def selectWindow: Row => Window = row =>
+    rowToWindow(row.getAs[Row](WindowColName))
+
+  private def rowToWindow(row: Row): Window =
+    Window(row.getAs[Timestamp](0), row.getAs[Timestamp](1))
 
   // Stats
 

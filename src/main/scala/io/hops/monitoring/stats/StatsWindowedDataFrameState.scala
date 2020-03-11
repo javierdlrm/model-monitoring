@@ -1,9 +1,7 @@
 package io.hops.monitoring.stats
 
 import io.hops.monitoring.util.Constants.Stats
-import io.hops.monitoring.util.LoggerUtil
-
-import scala.collection.mutable.HashMap
+import scala.collection.mutable
 
 case class StatsWindowedDataFrameState(private val colNames: Seq[String], private var _stats: Seq[String]) extends java.io.Serializable {
 
@@ -15,16 +13,16 @@ case class StatsWindowedDataFrameState(private val colNames: Seq[String], privat
     _stats.distinct
   }
 
-  private var _statsMap: HashMap[String, HashMap[String, Option[Float]]] = HashMap[String, HashMap[String, Option[Float]]](
+  private var _statsMap: mutable.HashMap[String, mutable.HashMap[String, Option[Float]]] = mutable.HashMap[String, mutable.HashMap[String, Option[Float]]](
     colNames.map(
-      col => col -> HashMap(
+      col => col -> mutable.HashMap(
         stats.map(stat => stat -> (None: Option[Float])): _*)
     ): _*)
-  val statsMap = _statsMap
+  val statsMap: mutable.HashMap[String, mutable.HashMap[String, Option[Float]]] = _statsMap
 
   // Methods
 
-  def update(updatedHashMap: HashMap[String, HashMap[String, Option[Float]]]): StatsWindowedDataFrameState = {
+  def update(updatedHashMap: mutable.HashMap[String, mutable.HashMap[String, Option[Float]]]): StatsWindowedDataFrameState = {
     _statsMap = updatedHashMap
     this
   }

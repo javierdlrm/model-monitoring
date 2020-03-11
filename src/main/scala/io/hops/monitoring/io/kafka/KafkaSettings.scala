@@ -3,8 +3,7 @@ package io.hops.monitoring.io.kafka
 import io.hops.monitoring.util.Constants.Kafka._
 import io.hops.monitoring.util.RichOption._
 
-import scala.collection.mutable.Map
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 
 object KafkaSettings {
 
@@ -20,7 +19,7 @@ object KafkaSettings {
            sslEndpointIdentificationAlgorithm: Option[String] = None)
            : immutable.Map[String, String] = {
 
-    val options: Map[String, String] = Map[String, String]()
+    val options: mutable.Map[String, String] = mutable.Map[String, String]()
 
     bootstrapServers!(options += Bootstrap_Servers -> _)
     subscribe!(options += Subscribe -> _)

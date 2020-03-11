@@ -1,7 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="45f677d2-98b7-40e3-ac05-4c484452ee6f" name="Default Changelist" comment="" />
+    <list default="true" id="45f677d2-98b7-40e3-ac05-4c484452ee6f" name="Default Changelist" comment="Restructure packages. Fix duplicate Query id.">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/scala_compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/scala_compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model-monitoring.iml" beforeDir="false" afterPath="$PROJECT_DIR$/model-monitoring.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/ModelMonitor.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/ModelMonitor.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/MonitoredDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/MonitoredDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/alerts/AlertsDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/alerts/AlertsDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/alerts/UnseenAlertsDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/alerts/UnseenAlertsDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/IrisMLMonitoringStructured.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/IrisMLMonitoringStructured.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/jupyter/iris_ml_e2e.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/jupyter/iris_ml_e2e.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/jupyter/iris_ml_streaming.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/examples/jupyter/iris_ml_streaming.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/InputReader.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/InputReader.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/dataframe/DataFrameReader.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/dataframe/DataFrameReader.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/dataframe/DataFrameWriter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/dataframe/DataFrameWriter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileReader.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileReader.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileSettings.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileSettings.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileWriter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/file/FileWriter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaReader.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaReader.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaSettings.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaSettings.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaWriter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/io/kafka/KafkaWriter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/stats/StatsWindowedDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/stats/StatsWindowedDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/stats/StatsWindowedDataFrameState.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/stats/StatsWindowedDataFrameState.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/manager/StreamManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/manager/StreamManager.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/ResolvableDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/ResolvableDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverBase.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverBase.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverManager.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverSignature.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverSignature.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverType.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/resolver/StreamResolverType.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/writer/StreamWriter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/writer/StreamWriter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/writer/StreamWriterBatch.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/streams/writer/StreamWriterBatch.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/Constants.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/Constants.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/DataFrameUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/DataFrameUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/EventEmitter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/EventEmitter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/ExtendedEventEmitter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/ExtendedEventEmitter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/LoggerUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/LoggerUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/ReflectionUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/ReflectionUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/RequestsUtil" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/RequestsUtil" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/RichOption.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/RichOption.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/StatsUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/StatsUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/TypeUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/TypeUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/WindowUtil.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/util/WindowUtil.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/Window.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/Window.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowSetting.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowSetting.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowStreamResolver.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowStreamResolver.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowedDataFrame.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/io/hops/monitoring/window/WindowedDataFrame.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/checkstyle-cachefile" beforeDir="false" afterPath="$PROJECT_DIR$/target/checkstyle-cachefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/checkstyle-checker.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/checkstyle-checker.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/checkstyle-result.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/checkstyle-result.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/checkstyle-suppressions.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/checkstyle-suppressions.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes.-1347337764.timestamp" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes.-1347337764.timestamp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-archiver/pom.properties" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-archiver/pom.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/model-monitoring-1.0-SNAPSHOT.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/model-monitoring-1.0-SNAPSHOT.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/maven/checkstyle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/tools/maven/checkstyle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/maven/suppressions.xml" beforeDir="false" afterPath="$PROJECT_DIR$/tools/maven/suppressions.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -9,6 +71,9 @@
   </component>
   <component name="CodeStyleSettingsInfer">
     <option name="done" value="true" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="1" />
@@ -41,11 +106,23 @@
     </task>
     <servers />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Restructure packages. Fix duplicate Query id." />
+    <option name="LAST_COMMIT_MESSAGE" value="Restructure packages. Fix duplicate Query id." />
+  </component>
   <component name="WindowStateProjectService">
+    <state x="691" y="280" key="#com.intellij.codeInsight.editorActions.RestoreReferencesDialog" timestamp="1583886239952">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state x="691" y="280" key="#com.intellij.codeInsight.editorActions.RestoreReferencesDialog/0.0.1920.1050@0.0.1920.1050" timestamp="1583886239952" />
     <state x="581" y="450" key="#com.intellij.refactoring.move.MoveHandler.SelectRefactoringDialog" timestamp="1583415853949">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state x="581" y="450" key="#com.intellij.refactoring.move.MoveHandler.SelectRefactoringDialog/0.0.1920.1050@0.0.1920.1050" timestamp="1583415853949" />
+    <state x="1534" y="-1141" key="CommitChangelistDialog2" timestamp="1583935809213">
+      <screen x="661" y="-1440" width="2560" height="1410" />
+    </state>
+    <state x="1534" y="-1141" key="CommitChangelistDialog2/0.0.1920.1050/661.-1440.2560.1410@661.-1440.2560.1410" timestamp="1583935809213" />
     <state width="1878" height="285" key="GridCell.Tab.0.bottom" timestamp="1583419500771">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
@@ -62,9 +139,13 @@
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state width="1878" height="285" key="GridCell.Tab.0.right/0.0.1920.1050@0.0.1920.1050" timestamp="1583419500771" />
-    <state x="587" y="221" width="744" height="606" key="find.popup" timestamp="1583417084927">
+    <state x="768" y="442" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1583858604901">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
-    <state x="587" y="221" width="744" height="606" key="find.popup/0.0.1920.1050@0.0.1920.1050" timestamp="1583417084927" />
+    <state x="768" y="442" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1050@0.0.1920.1050" timestamp="1583858604901" />
+    <state x="587" y="221" width="744" height="606" key="find.popup" timestamp="1583887503754">
+      <screen x="0" y="0" width="1920" height="1050" />
+    </state>
+    <state x="587" y="221" width="744" height="606" key="find.popup/0.0.1920.1050@0.0.1920.1050" timestamp="1583887503754" />
   </component>
 </project>

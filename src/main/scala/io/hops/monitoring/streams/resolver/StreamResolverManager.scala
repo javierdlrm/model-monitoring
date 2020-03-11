@@ -8,7 +8,6 @@ object StreamResolverManager extends java.io.Serializable {
   private var callback: Option[StreamResolverSignature => Unit] = None
 
   def setCallback(callback: StreamResolverSignature => Unit): Unit = {
-    LoggerUtil.log.info(s"[StreamResolverManager] Setting callback")
     this.callback = Some(callback)
   }
 

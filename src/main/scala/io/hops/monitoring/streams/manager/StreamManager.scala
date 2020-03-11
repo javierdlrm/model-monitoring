@@ -32,7 +32,7 @@ object StreamManager extends java.io.Serializable {
   // Streams
 
   private def restart(signature: StreamResolverSignature): Unit = {
-    LoggerUtil.log.info(s"[StreamManager] Restarting queries with signature ${signature}")
+    LoggerUtil.log.info(s"[StreamManager] Restarting queries with signature $signature")
 
     streamWriters.foreach(sw =>
       if (sw.signatures.isDefined && sw.signatures.get.contains(signature)) sw.restart)
@@ -75,6 +75,9 @@ object StreamManager extends java.io.Serializable {
       // Forget terminated queries
       spark.get.streams.resetTerminated
     }
+
+    // Ensure all queries stopped
+    if (timeoutReached) streamWriters.foreach(sw => if (sw.isActive) sw.stop())
   }
 
   // Resolvers
@@ -90,8 +93,6 @@ object StreamManager extends java.io.Serializable {
   // Listener
 
   private def handleTerminatedQuery(id: UUID, runId: UUID, exception: Option[String]): Any = {
-    LoggerUtil.log.info(s"[StreamManager](Listener) Streaming query terminated with id $id, runId $runId and exception $exception")
-
     val idx = streamWriters.indexWhere(sw => sw.id.get == id && sw.runId.get == runId)
     if (idx >= 0) { // query is StreamWriter
       if (exception isDefined) {
@@ -113,7 +114,9 @@ object StreamManager extends java.io.Serializable {
     override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit =
       LoggerUtil.log.info(s"[StreamManager](Listener) Streaming query progressing: id ${event.progress.id}, runId ${event.progress.runId}")
 
-    override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit =
+    override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
+      LoggerUtil.log.info(s"[StreamManager](Listener) Streaming query terminated with id ${event.id}, runId ${event.runId} and exception ${event.exception}")
       handleTerminatedQuery(event.id, event.runId, event.exception)
+    }
   }
 }

@@ -11,7 +11,8 @@ import scala.collection.immutable.ListMap
 
 object DataFrameUtil {
 
-  implicit def explodeColumn(df: DataFrame) = new {
+  implicit def explodeColumn(df: DataFrame): Object {
+    def explodeColumn(colName: String, schema: StructType): DataFrame } = new {
 
     // Explode column based on schema
     def explodeColumn(colName: String, schema: StructType): DataFrame = {

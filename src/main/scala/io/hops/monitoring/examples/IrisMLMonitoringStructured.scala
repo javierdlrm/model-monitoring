@@ -78,15 +78,15 @@ object IrisMLMonitoringStructured {
 
     // Windowed stats
     val sdf = mdf
-      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay)) // Manual window
+//      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay)) // Manual window
 //      .window(timeColumnName, sampleSize = 100, logsPath=s"$ResourcesDir$kfkTopic") // Sample size based
-//      .window(timeColumnName, defaultResolver, logsPath=s"$ResourcesDir$kfkTopic") // Auto
+      .window(timeColumnName, defaultResolver, logsPath=s"$ResourcesDir$kfkTopic-windowresolver") // Auto
       .stats(colNames, stats)
 
     // Stream writer
-    val ssw = sdf
-      .output("StatsStreamingQuery")
-      .parquet(kfkTopic, ResourcesDir)
+//    val ssw = sdf
+//      .output("StatsStreamingQuery")
+//      .parquet(kfkTopic, ResourcesDir)
 
     // Alerts
     val asw = sdf
@@ -98,7 +98,8 @@ object IrisMLMonitoringStructured {
     // Execute queries
     StreamManager
       .init(spark)
-      .awaitAll(Seq(ssw, asw), jobTimeout)
+      .awaitAll(Seq(asw), jobTimeout)
+//      .awaitAll(Seq(ssw, asw), jobTimeout)
 
     // Close session
     LoggerUtil.log.info("[IrisMLMonitoringStructured] Shutting down spark job...")
@@ -106,7 +107,8 @@ object IrisMLMonitoringStructured {
   }
 
   private def defaultResolver: (WindowSetting, Long) => WindowSetting = (setting: WindowSetting, rps: Long) => {
-    LoggerUtil.log.info(s"[IrisMLMonitoringStructured] Default resolver: Setting: [$setting] and RPS ($rps)")
+    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
+    LoggerUtil.log.info(s"[IrisMLMonitoringStructured](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Default resolver: Setting: [$setting] and RPS ($rps)")
 
 //    val sampleSize = 200
 //    val duration = sampleSize / rps
@@ -118,7 +120,7 @@ object IrisMLMonitoringStructured {
     val watermarkDelay = 4
 
     // Window estimation
-    LoggerUtil.log.info(s"[IrisMLMonitoringStructured] Default resolver: Decision ($duration, $slideDuration, $watermarkDelay)")
+//    LoggerUtil.log.info(s"[IrisMLMonitoringStructured] Default resolver: Decision ($duration, $slideDuration, $watermarkDelay)")
     WindowSetting(Seconds(duration), Seconds(slideDuration), Seconds(watermarkDelay))
   }
 

@@ -3,17 +3,16 @@ package io.hops.monitoring.stats
 import io.hops.monitoring.alerts.AlertsDataFrame
 import io.hops.monitoring.streams.resolver.{ResolvableDataFrame, StreamResolverSignature}
 import io.hops.monitoring.streams.writer.StreamWriter
-import io.hops.monitoring.window.Window
-import io.hops.monitoring.util.Constants.Window.WindowColName
 import io.hops.monitoring.util.Constants.Stats._
-import io.hops.monitoring.util.StatsUtil
-import io.hops.monitoring.util.LoggerUtil
+import io.hops.monitoring.util.Constants.Window.WindowColName
 import io.hops.monitoring.util.DataFrameUtil.Encoders
-import org.apache.spark.sql.{KeyValueGroupedDataset, Row, DataFrame}
+import io.hops.monitoring.util.{LoggerUtil, StatsUtil}
+import io.hops.monitoring.window.Window
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, OutputMode}
 import org.apache.spark.sql.types.{FloatType, StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable
 
 class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: StructType, colNames: Seq[String], stats: Seq[String], signatures: Option[Seq[StreamResolverSignature]])
   extends ResolvableDataFrame(signatures) with java.io.Serializable {
@@ -93,11 +92,11 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
     state.update(stateStats)
   }
 
-  private def updateColSimpleStats(colStats: HashMap[String, Option[Float]], instanceValue: Float): HashMap[String, Option[Float]] = {
+  private def updateColSimpleStats(colStats: mutable.HashMap[String, Option[Float]], instanceValue: Float): mutable.HashMap[String, Option[Float]] = {
     colStats.keys.filter(StatsUtil.isSimple)
       .foreach(stat => { // for each simple stat
         val statValue =
-          if (!colStats(stat).isDefined) { // Check default simple stat
+          if (colStats(stat) isEmpty) { // Check default simple stat
             StatsUtil.defaultStat(stat, instanceValue)
           } else {
             StatsUtil.Compute.simpleStat(stat, instanceValue, colStats)
@@ -107,7 +106,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
     colStats
   }
 
-  private def updateColCompoundStats(colStats: HashMap[String, Option[Float]]): HashMap[String, Option[Float]] = {
+  private def updateColCompoundStats(colStats: mutable.HashMap[String, Option[Float]]): mutable.HashMap[String, Option[Float]] = {
     colStats.keys.filter(StatsUtil.isCompound)
       .foreach(stat => { // for each compound stat
         val statValue = StatsUtil.Compute.compoundStat(stat, colStats)
@@ -116,7 +115,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
     colStats
   }
 
-  private def updateColComplexStats(instanceValue: Float, colStats: HashMap[String, Option[Float]]): HashMap[String, Option[Float]] = {
+  private def updateColComplexStats(instanceValue: Float, colStats: mutable.HashMap[String, Option[Float]]): mutable.HashMap[String, Option[Float]] = {
     colStats.keys.filter(StatsUtil.isComplex)
       .foreach(stat => {
         val statValue = StatsUtil.Compute.complexStat(stat, instanceValue, colStats)
@@ -124,7 +123,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
       })
     colStats
   }
-  private def updateColComplexStats(colStats: HashMap[String, Option[Float]]): HashMap[String, Option[Float]] = {
+  private def updateColComplexStats(colStats: mutable.HashMap[String, Option[Float]]): mutable.HashMap[String, Option[Float]] = {
     colStats.keys.filter(StatsUtil.isComplex)
       .foreach(stat => {
         val statValue = StatsUtil.Compute.complexStat(stat, colStats)
@@ -135,7 +134,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
 
   private def buildRow(window: Window, state: StatsWindowedDataFrameState): Seq[Row] = {
     state.stats.map(stat =>
-      Row((Row(window.start, window.end) +: state.statsMap.map(colStat => colStat._2(stat).get).toArray :+ stat):_*))
+      Row(Row(window.start, window.end) +: state.statsMap.map(colStat => colStat._2(stat).get).toArray :+ stat:_*))
   }
 
   // Alerts
@@ -149,7 +148,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
 
   // Output
 
-  def output(queryName: String) = {
+  def output(queryName: String): StreamWriter = {
     val mdf = buildMdf
     new StreamWriter(mdf, queryName, getSignatures)
   }

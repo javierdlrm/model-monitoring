@@ -3,7 +3,7 @@ package io.hops.monitoring.window
 import java.sql.Timestamp
 
 import io.hops.monitoring.streams.resolver.{StreamResolverBase, StreamResolverSignature, StreamResolverType}
-import io.hops.monitoring.util.Constants.File
+import io.hops.monitoring.util.Constants.{File, Stats}
 import io.hops.monitoring.util.Constants.Window._
 import io.hops.monitoring.util.DataFrameUtil.Encoders
 import io.hops.monitoring.util.{LoggerUtil, WindowUtil}
@@ -12,7 +12,7 @@ import org.apache.spark.streaming.Seconds
 import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 import org.apache.spark.sql.functions.{col, window}
 import org.apache.spark.sql.streaming.{DataStreamWriter, OutputMode, StreamingQuery}
-import org.apache.spark.sql.types.{BooleanType, LongType, StructField, StructType}
+import org.apache.spark.sql.types.{BooleanType, LongType, StructField, StructType, TimestampType}
 
 import scala.collection.immutable.HashMap
 
@@ -27,6 +27,9 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   private val queryName = WindowUtil.windowStreamResolverQueryName(signature)
   private val setting: WindowSetting = WindowUtil.defaultSetting
   private val df: DataFrame = wdf.df
+  private val countSchema: StructType = getCountSchema
+  private val countSchemaIndexMap = countSchema.fieldNames.zipWithIndex.toMap
+  private val actionSchema: StructType = getActionSchema
 
   private var sampleSize: Option[Int] = None
   private var resolve: (WindowSetting, Long) => WindowSetting = defaultResolver
@@ -39,7 +42,7 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   private def setResolver(resolver: (WindowSetting, Long) => WindowSetting): Unit = this.resolve = resolver
   private def setLogsPath(logsPath: String): Unit = this.logsPath = logsPath
 
-  // Window construction
+  // Query
 
   private def buildWdf: DataFrame = {
     LoggerUtil.log.info(s"[WindowStreamResolver] Building WDF with duration ${setting.duration}, slide ${setting.slideDuration} and watermark ${setting.watermarkDelay}")
@@ -51,9 +54,22 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   private def buildKvgd(wwdf: DataFrame): KeyValueGroupedDataset[Window, Row] =
     wwdf.groupByKey[Window](selectWindow)(Encoders.windowEncoder)
 
-  private def buildMdf(kvgd: KeyValueGroupedDataset[Window, Row], rowSchema: StructType): DataFrame = {
-    val rowEncoder = Encoders.rowEncoder(rowSchema)
+  private def selectWindow: Row => Window = row =>
+    rowToWindow(row.getAs[Row](WindowColName))
+
+  private def rowToWindow(row: Row): Window =
+    Window(row.getAs[Timestamp](0), row.getAs[Timestamp](1))
+
+  private def buildMdf(kvgd: KeyValueGroupedDataset[Window, Row]): DataFrame = {
+    val rowEncoder = Encoders.rowEncoder(countSchema)
     kvgd.mapGroups(computeGroupCount)(rowEncoder)
+  }
+
+  private def computeGroupCount(window: Window, instances: Iterator[Row]): Row = {
+    val rqs = instances.size
+    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
+    LoggerUtil.log.info(s"[WindowStreamResolver](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Compute group of Window [$window] with RQS ($rqs)")
+    buildCountRow(window, rqs)
   }
 
   private def buildSw(mdf: DataFrame): DataStreamWriter[Row] = {
@@ -65,7 +81,7 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
       .option(File.CheckpointLocation, s"$logsPath-parquet-checkpoint")
   }
 
-  // Behavior
+  // Resolver
 
   private def defaultResolver(setting: WindowSetting, rps: Long): WindowSetting = {
     assert(sampleSize isDefined)
@@ -83,13 +99,18 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
     resolverCallback!(_(signature)) // Callback
   }
 
-  private def selectWindow: Row => Window = t => {
-    val windowRow = t.getAs[Row](WindowColName)
-    Window(windowRow.getAs[Timestamp](0), windowRow.getAs[Timestamp](1))
+  private def resolveCounts(df: DataFrame): DataFrame = {
+    val rowEncoder = Encoders.rowEncoder(actionSchema)
+    df.map(row => {
+      val (window, rqs) = (rowToWindow(row.getAs[Row](countSchemaIndexMap(WindowColName))), row.getAs[Long](countSchemaIndexMap(Stats.Count)))
+      val (nextSettingRaw, nextSetting, execute) = resolveCount(rqs)
+      buildActionRow(window, nextSettingRaw, nextSetting, execute)
+    })(rowEncoder)
   }
 
-  private def process(rqs: Long): (WindowSetting, WindowSetting, Boolean) = {
-    LoggerUtil.log.info(s"[WindowStreamResolver] Processing window with RQS $rqs")
+  private def resolveCount(rqs: Long): (WindowSetting, WindowSetting, Boolean) = {
+    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
+    LoggerUtil.log.info(s"[WindowStreamResolver](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Resolve count: RQS $rqs")
 
     // estimate next window setting
     val setting = wdf.getSetting
@@ -102,40 +123,40 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
       takeAction(nextSetting)
     }
 
-    (setting, nextSetting, execute)
+    (nextSettingRaw, nextSetting, execute)
   }
 
-  private def processSetting(setting: WindowSetting, nextSetting: WindowSetting): WindowSetting = {
+  private def processSetting(setting: WindowSetting, nextSettingRaw: WindowSetting): WindowSetting = {
     // TODO: Process window (smooth, ...)
     WindowSetting(setting.duration, setting.slideDuration, setting.watermarkDelay)
   }
 
   private def isActionRequired(setting: WindowSetting, nextSetting: WindowSetting): Boolean = {
     // TODO: Decide to take action or not
-    false
+    true
   }
 
-  private def buildRow(window: Window, nextSettingRaw: WindowSetting, nextSetting: WindowSetting, executed: Boolean): Row =
+  // Rows
+
+  private def buildCountRow(window: Window, rqs: Long): Row =
+    Row(Row(window.start, window.end), rqs)
+
+  private def buildActionRow(window: Window, nextSettingRaw: WindowSetting, nextSetting: WindowSetting, executed: Boolean): Row =
     Row(Row(window.start, window.end),
       nextSettingRaw.duration.milliseconds, nextSettingRaw.slideDuration.milliseconds, nextSettingRaw.watermarkDelay.milliseconds,
       nextSetting.duration.milliseconds, nextSetting.slideDuration.milliseconds, nextSetting.watermarkDelay.milliseconds, executed)
 
-  private def getSchema(df: DataFrame): StructType = {
-    new StructType(Array(
-      df.schema.find(f => f.name == WindowColName).get,
-      StructField(RawDurationColName, LongType), StructField(RawSlideDurationColName, LongType), StructField(RawWatermarkDelayColName, LongType),
-      StructField(DurationColName, LongType), StructField(SlideDurationName, LongType), StructField(WatermarkDelayColName, LongType),
-      StructField(ExecutedColName, BooleanType)
-    ))
-  }
+  // Schemas
 
-  private def computeGroupCount(window: Window, instances: Iterator[Row]): Row = {
-    val rqs = instances.size
-    LoggerUtil.log.info(s"[WindowStreamResolver] Computing group count ($rqs instances)")
+  private def getCountSchema: StructType = new StructType(Array(
+    StructField(WindowColName, new StructType(Array(StructField(StartColName, TimestampType), StructField(EndColName, TimestampType)))),
+    StructField(Stats.Count, LongType)))
 
-    val (rawSetting, setting, executed) = process(rqs) // Resolve new window settings
-    buildRow(window, rawSetting, setting, executed) // Create row
-  }
+  private def getActionSchema: StructType = new StructType(Array(
+    StructField(WindowColName, new StructType(Array(StructField(StartColName, TimestampType), StructField(EndColName, TimestampType)))),
+    StructField(RawDurationColName, LongType), StructField(RawSlideDurationColName, LongType), StructField(RawWatermarkDelayColName, LongType),
+    StructField(DurationColName, LongType), StructField(SlideDurationName, LongType), StructField(WatermarkDelayColName, LongType),
+    StructField(ExecutedColName, BooleanType)))
 
   // Overrides
 
@@ -151,10 +172,11 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
 
     resolverCallback = Some(callback)
 
-    val wwdf = buildWdf
-    val kvgd = buildKvgd(wwdf)
-    val mdf = buildMdf(kvgd, getSchema(wwdf))
-    val sw = buildSw(mdf)
+    val wddf = buildWdf // windowed df
+    val kvgd = buildKvgd(wddf) // key-value group
+    val mdf = buildMdf(kvgd) // map df
+    val actions = resolveCounts(mdf)
+    val sw = buildSw(actions) // stream writer
 
     val swsq = sw.start
 
@@ -162,7 +184,7 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
     sq = Some(swsq)
   }
 
-  override def stop: Unit = sq!(_.stop)
+  override def stop(): Unit = sq!(_.stop)
 }
 
 object WindowStreamResolver {

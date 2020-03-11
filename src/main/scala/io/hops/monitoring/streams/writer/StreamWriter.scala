@@ -17,12 +17,13 @@ class StreamWriter(val df: DataFrame, val queryName: String, val signatures: Opt
 
   private var obws: Array[StreamWriterBatch] = Array()
   private var sq: Option[StreamingQuery] = None
+  private var restarting: Boolean = false
 
   // Access methods
 
   def id: Option[UUID] = if (sq isDefined) Some(sq.get.id) else None
   def runId: Option[UUID] = if (sq isDefined) Some(sq.get.runId) else None
-  def isActive: Boolean = sq.isDefined && sq.get.isActive
+  def isActive: Boolean = (sq.isDefined && sq.get.isActive) || restarting
 
   // Methods
 
@@ -36,7 +37,7 @@ class StreamWriter(val df: DataFrame, val queryName: String, val signatures: Opt
   def start: (UUID, UUID) = {
     LoggerUtil.log.info(s"[StreamWriter] Starting query $queryName")
 
-    val stq = if (obws.size == 1) {
+    val stq = if (obws.length == 1) {
       obws(0).create(df, queryName).start
     } else {
       df.writeStream
@@ -47,18 +48,24 @@ class StreamWriter(val df: DataFrame, val queryName: String, val signatures: Opt
           batchDF.unpersist()
       }).start
     }
-
     LoggerUtil.log.info(s"[StreamWriter] Starting query: DONE")
 
     sq = Some(stq)
     (stq.id, stq.runId)
   }
 
-  def restart = {
+  def restart: (UUID, UUID) = {
     // NOTE: Avoid time leaks between queries. QueryManager is watching!
 
-    val prevSq = sq // keep prev query
-    start // start query again
-    prevSq!(_.stop) // Stop prev query
+    restarting = true // keep streamWriter "isActive"
+    stop() // stop query
+    val (id, runId) = start // start query again
+    restarting = false
+
+    (id, runId)
+  }
+
+  def stop(): Unit = {
+    sq!(_.stop)
   }
 }

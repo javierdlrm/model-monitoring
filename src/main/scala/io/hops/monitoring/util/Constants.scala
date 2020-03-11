@@ -8,13 +8,15 @@ object Constants {
 
   object Window {
     val WindowColName = "window"
-    val WindowColStartFieldName = "window.start"
-    val WindowColEndFieldName = "window.end"
+    val StartColName = "start"
+    val EndColName = "end"
+    val WindowColStartFieldName = s"$WindowColName.$StartColName"
+    val WindowColEndFieldName = s"$WindowColName.$EndColName"
 
     val WindowStreamResolverQueryName = "WindowResolverStreamingQuery"
     val RawDurationColName = "rawDuration"
     val RawSlideDurationColName = "rawSlideDuration"
-    val RawWatermarkDelayColName = "watermarkDelay"
+    val RawWatermarkDelayColName = "rawWatermarkDelay"
     val DurationColName = "duration"
     val SlideDurationName = "slideDuration"
     val WatermarkDelayColName = "watermarkDelay"
