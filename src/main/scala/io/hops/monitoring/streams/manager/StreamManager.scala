@@ -18,6 +18,8 @@ object StreamManager extends java.io.Serializable {
   private var streamWriters: Seq[StreamWriter] = Seq()
   private var timeoutMs: Option[Duration] = None
 
+  def logState(head: String): Unit = LoggerUtil.log.info(s"[StreamManager]$head StreamWriters (${streamWriters.length}) - [${this.streamWriters.map(sw => s"${sw.queryName} - ${sw.signatures}")}]")
+
   // Init
 
   def init(spark: SparkSession): StreamManager.type = {
@@ -25,20 +27,24 @@ object StreamManager extends java.io.Serializable {
 
     this.spark = Some(spark)
     this.spark.get.streams.addListener(listener)
-    StreamResolverManager.setCallback(restart)
+//    StreamResolverManager.setCallback(this.restart)
     this
   }
 
   // Streams
 
-  private def restart(signature: StreamResolverSignature): Unit = {
-    LoggerUtil.log.info(s"[StreamManager] Restarting queries with signature $signature")
+  def restart(signature: StreamResolverSignature): Unit = {
+    LoggerUtil.log.info(s"[StreamManager] Restarting queries with signature $signature among writers: [${this.streamWriters.map(sw => s"${sw.queryName} - ${sw.signatures}")}]")
 
-    streamWriters.foreach(sw =>
-      if (sw.signatures.isDefined && sw.signatures.get.contains(signature)) sw.restart)
+    this.streamWriters.foreach(sw => {
+      LoggerUtil.log.info(s"[StreamManager] Restarting queries: Check signature with ${sw.queryName} and ${sw.signatures}")
+      if (sw.signatures.isDefined && sw.signatures.get.contains(signature))
+        LoggerUtil.log.info(s"[StreamManager] Restarting queries: Matched signature! Restarting query ${sw.queryName}")
+        sw.restart
+    })
   }
 
-  private def start(sw: StreamWriter): Unit = {
+  def start(sw: StreamWriter): Unit = {
     LoggerUtil.log.info(s"[StreamManager] Starting query with signatures [${sw.signatures.mkString(", ")}]")
     LoggerUtil.log.info(s"[StreamManager] Starting query: Resolvers")
     sw.signatures!startResolvers // Ensure resolvers are active
@@ -58,12 +64,12 @@ object StreamManager extends java.io.Serializable {
     this.streamWriters = streamWriters
 
     // Start queries asynchronously
-    streamWriters.foreach(start)
+    this.streamWriters.foreach(start)
 
     // Await termination
     LoggerUtil.log.info(s"[StreamManager] Waiting for queries: Any active (${streamWriters.exists(_.isActive) })")
     var timeoutReached: Boolean = false
-    while (streamWriters.exists(_.isActive) && !timeoutReached) {
+    while (this.streamWriters.exists(_.isActive) && !timeoutReached) {
       LoggerUtil.log.info(s"[StreamManager] Waiting for any query termination: Active [${streamWriters.filter(_.isActive).map(_.queryName).mkString(", ")}]")
 
       // Wait for the queries
@@ -77,7 +83,7 @@ object StreamManager extends java.io.Serializable {
     }
 
     // Ensure all queries stopped
-    if (timeoutReached) streamWriters.foreach(sw => if (sw.isActive) sw.stop())
+    if (timeoutReached) this.streamWriters.foreach(sw => if (sw.isActive) sw.stop())
   }
 
   // Resolvers
@@ -85,7 +91,7 @@ object StreamManager extends java.io.Serializable {
   private def startResolvers(signatures: Seq[StreamResolverSignature]): Unit = StreamResolverManager.start(signatures)
   private def stopResolvers(signatures: Seq[StreamResolverSignature]): Unit = {
     signatures.foreach(signature => {
-      val used = streamWriters.exists(sw => sw.signatures.isDefined && sw.signatures.get.contains(signature))
+      val used = this.streamWriters.exists(sw => sw.signatures.isDefined && sw.signatures.get.contains(signature))
       if (!used) StreamResolverManager.stop(Seq(signature))
     })
   }
@@ -93,13 +99,13 @@ object StreamManager extends java.io.Serializable {
   // Listener
 
   private def handleTerminatedQuery(id: UUID, runId: UUID, exception: Option[String]): Any = {
-    val idx = streamWriters.indexWhere(sw => sw.id.get == id && sw.runId.get == runId)
+    val idx = this.streamWriters.indexWhere(sw => sw.id.get == id && sw.runId.get == runId)
     if (idx >= 0) { // query is StreamWriter
       if (exception isDefined) {
         // TODO: Retry policy
       } else {
-        val signatures = streamWriters(idx).signatures
-        streamWriters = streamWriters.drop(idx) // Remove stream writer
+        val signatures = this.streamWriters(idx).signatures
+        this.streamWriters = this.streamWriters.drop(idx) // Remove stream writer
         signatures!stopResolvers // Stop unused resolvers
       }
     } else { // query is StreamResolver

@@ -57,10 +57,13 @@ class StreamWriter(val df: DataFrame, val queryName: String, val signatures: Opt
   def restart: (UUID, UUID) = {
     // NOTE: Avoid time leaks between queries. QueryManager is watching!
 
+    LoggerUtil.log.info(s"[StreamWriter] Restarting query $queryName. Stopping...")
     restarting = true // keep streamWriter "isActive"
     stop() // stop query
+    LoggerUtil.log.info(s"[StreamWriter] Restarting query $queryName. Starting...")
     val (id, runId) = start // start query again
     restarting = false
+    LoggerUtil.log.info(s"[StreamWriter] Restarting query $queryName. Restarted with id $id and runId $runId")
 
     (id, runId)
   }

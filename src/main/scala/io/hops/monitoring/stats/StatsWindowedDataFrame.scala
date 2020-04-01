@@ -28,6 +28,7 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
   private def buildMdf: DataFrame = {
     val rowEncoder = Encoders.rowEncoder(statsSchema)
     val stateEncoder = Encoders.statsWindowedStateEncoder
+    // TODO: Check OutputMode. Use Update instead of Append? Are there intermediate duplicates in the results?
     kvgd.flatMapGroupsWithState[StatsWindowedDataFrameState, Row](OutputMode.Append(), GroupStateTimeout.EventTimeTimeout)(computeGroupStats)(stateEncoder, rowEncoder)
   }
 

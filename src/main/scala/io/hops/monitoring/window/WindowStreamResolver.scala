@@ -2,6 +2,7 @@ package io.hops.monitoring.window
 
 import java.sql.Timestamp
 
+import io.hops.monitoring.streams.manager.StreamManager
 import io.hops.monitoring.streams.resolver.{StreamResolverBase, StreamResolverSignature, StreamResolverType}
 import io.hops.monitoring.util.Constants.{File, Stats}
 import io.hops.monitoring.util.Constants.Window._
@@ -9,7 +10,7 @@ import io.hops.monitoring.util.DataFrameUtil.Encoders
 import io.hops.monitoring.util.{LoggerUtil, WindowUtil}
 import io.hops.monitoring.util.RichOption._
 import org.apache.spark.streaming.Seconds
-import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
+import org.apache.spark.sql.{DataFrame, Dataset, KeyValueGroupedDataset, Row}
 import org.apache.spark.sql.functions.{col, window}
 import org.apache.spark.sql.streaming.{DataStreamWriter, OutputMode, StreamingQuery}
 import org.apache.spark.sql.types.{BooleanType, LongType, StructField, StructType, TimestampType}
@@ -27,8 +28,8 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   private val queryName = WindowUtil.windowStreamResolverQueryName(signature)
   private val setting: WindowSetting = WindowUtil.defaultSetting
   private val df: DataFrame = wdf.df
-  private val countSchema: StructType = getCountSchema
-  private val countSchemaIndexMap = countSchema.fieldNames.zipWithIndex.toMap
+//  private val countSchema: StructType = getCountSchema
+//  private val countSchemaIndexMap = countSchema.fieldNames.zipWithIndex.toMap
   private val actionSchema: StructType = getActionSchema
 
   private var sampleSize: Option[Int] = None
@@ -60,21 +61,9 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   private def rowToWindow(row: Row): Window =
     Window(row.getAs[Timestamp](0), row.getAs[Timestamp](1))
 
-  private def buildMdf(kvgd: KeyValueGroupedDataset[Window, Row]): DataFrame = {
-    val rowEncoder = Encoders.rowEncoder(countSchema)
-    kvgd.mapGroups(computeGroupCount)(rowEncoder)
-  }
-
-  private def computeGroupCount(window: Window, instances: Iterator[Row]): Row = {
-    val rqs = instances.size
-    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
-    LoggerUtil.log.info(s"[WindowStreamResolver](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Compute group of Window [$window] with RQS ($rqs)")
-    buildCountRow(window, rqs)
-  }
-
-  private def buildSw(mdf: DataFrame): DataStreamWriter[Row] = {
-    mdf.writeStream
-      .format(File.ParquetFormat)
+  private def buildSw(cdf: Dataset[(Window, Long)]): DataStreamWriter[(Window, Long)] = {
+    cdf.writeStream
+      .format("io.hops.monitoring.io.sink.BasicSinkProvider")
       .queryName(queryName)
       .outputMode(OutputMode.Append())
       .option(File.Path, s"$logsPath-parquet")
@@ -82,6 +71,49 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   }
 
   // Resolver
+
+//  private def resolveCounts(df: DataFrame): DataFrame = {
+//    val rowEncoder = Encoders.rowEncoder(actionSchema)
+//    df.map(row => {
+//      val (window, rqs) = (rowToWindow(row.getAs[Row](countSchemaIndexMap(WindowColName))), row.getAs[Long](countSchemaIndexMap(Stats.Count)))
+//      val (nextSettingRaw, nextSetting, execute) = resolveCount(rqs)
+//      buildActionRow(window, nextSettingRaw, nextSetting, execute)
+//    })(rowEncoder)
+//  }
+//
+//  private def resolveCount(rqs: Long): (WindowSetting, WindowSetting, Boolean) = {
+//    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
+//    LoggerUtil.log.info(s"[WindowStreamResolver](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Resolve count: RQS $rqs")
+//
+//    // estimate next window setting
+//    val setting = wdf.getSetting
+//    val nextSettingRaw = resolve(setting, rqs) // decide next window setting
+//    val nextSetting = processSetting(setting, nextSettingRaw) // (smooth, ...)
+//
+//    // decide to take action
+//    val execute = isActionRequired(setting, nextSetting)
+//    if (execute) {
+//      takeAction(nextSetting)
+//    }
+//
+//    (nextSettingRaw, nextSetting, execute)
+//  }
+//
+//  private def takeAction(setting: WindowSetting): Unit = {
+//    wdf.setWindow(setting) // Update window settings
+//    StreamManager.logState("(StreamResolverManager.takeAction)")
+//    resolverCallback!(_(signature)) // Callback
+//  }
+//
+//  private def processSetting(setting: WindowSetting, nextSettingRaw: WindowSetting): WindowSetting = {
+//    // TODO: Process window (smooth, ...)
+//    WindowSetting(setting.duration, setting.slideDuration, setting.watermarkDelay)
+//  }
+//
+//  private def isActionRequired(setting: WindowSetting, nextSetting: WindowSetting): Boolean = {
+//    // TODO: Decide to take action or not
+//    true
+//  }
 
   private def defaultResolver(setting: WindowSetting, rps: Long): WindowSetting = {
     assert(sampleSize isDefined)
@@ -94,52 +126,10 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
     WindowSetting(Seconds(duration), Seconds(slideDuration), Seconds(watermarkDelay))
   }
 
-  private def takeAction(setting: WindowSetting): Unit = {
-    wdf.setWindow(setting) // Update window settings
-    resolverCallback!(_(signature)) // Callback
-  }
-
-  private def resolveCounts(df: DataFrame): DataFrame = {
-    val rowEncoder = Encoders.rowEncoder(actionSchema)
-    df.map(row => {
-      val (window, rqs) = (rowToWindow(row.getAs[Row](countSchemaIndexMap(WindowColName))), row.getAs[Long](countSchemaIndexMap(Stats.Count)))
-      val (nextSettingRaw, nextSetting, execute) = resolveCount(rqs)
-      buildActionRow(window, nextSettingRaw, nextSetting, execute)
-    })(rowEncoder)
-  }
-
-  private def resolveCount(rqs: Long): (WindowSetting, WindowSetting, Boolean) = {
-    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
-    LoggerUtil.log.info(s"[WindowStreamResolver](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Resolve count: RQS $rqs")
-
-    // estimate next window setting
-    val setting = wdf.getSetting
-    val nextSettingRaw = resolve(setting, rqs) // decide next window setting
-    val nextSetting = processSetting(setting, nextSettingRaw) // (smooth, ...)
-
-    // decide to take action
-    val execute = isActionRequired(setting, nextSetting)
-    if (execute) {
-      takeAction(nextSetting)
-    }
-
-    (nextSettingRaw, nextSetting, execute)
-  }
-
-  private def processSetting(setting: WindowSetting, nextSettingRaw: WindowSetting): WindowSetting = {
-    // TODO: Process window (smooth, ...)
-    WindowSetting(setting.duration, setting.slideDuration, setting.watermarkDelay)
-  }
-
-  private def isActionRequired(setting: WindowSetting, nextSetting: WindowSetting): Boolean = {
-    // TODO: Decide to take action or not
-    true
-  }
-
   // Rows
 
-  private def buildCountRow(window: Window, rqs: Long): Row =
-    Row(Row(window.start, window.end), rqs)
+//  private def buildCountRow(window: Window, rqs: Long): Row =
+//    Row(Row(window.start, window.end), rqs)
 
   private def buildActionRow(window: Window, nextSettingRaw: WindowSetting, nextSetting: WindowSetting, executed: Boolean): Row =
     Row(Row(window.start, window.end),
@@ -163,6 +153,7 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
   override def isActive: Boolean = sq.isDefined && sq.get.isActive
 
   override def start(callback: StreamResolverSignature => Unit): Unit = {
+    StreamManager.logState("(WindowStreamResolver.start)")
     LoggerUtil.log.info(s"[WindowStreamResolver] Starting resolver over $timeColName with duration ${setting.duration}, slide ${setting.slideDuration} and watermark ${setting.watermarkDelay}")
 
     if (isActive) {
@@ -174,9 +165,8 @@ class WindowStreamResolver(wdf: WindowedDataFrame, timeColName: String) extends 
 
     val wddf = buildWdf // windowed df
     val kvgd = buildKvgd(wddf) // key-value group
-    val mdf = buildMdf(kvgd) // map df
-    val actions = resolveCounts(mdf)
-    val sw = buildSw(actions) // stream writer
+    val cdf = kvgd.count()
+    val sw = buildSw(cdf) // stream writer
 
     val swsq = sw.start
 

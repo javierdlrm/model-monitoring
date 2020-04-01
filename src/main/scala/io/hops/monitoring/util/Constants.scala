@@ -25,7 +25,7 @@ object Constants {
     object Defaults {
       val Duration: Duration = Seconds(1)
       val SlideDuration: Duration = Seconds(1)
-      val WatermarkDelay: Duration = Seconds(2)
+      val WatermarkDelay: Duration = Seconds(1)
     }
   }
 
