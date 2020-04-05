@@ -7,6 +7,9 @@ syntax: glob
 *.bak
 *.off
 *.old
+*.iml
+*.ipr
+*.iws
 
 # eclipse conf file
 .settings
@@ -14,6 +17,11 @@ syntax: glob
 .project
 .manager
 .idea
+.cache/
+.history/
+.lib/
+.scala_dependencies
+.worksheet
 
 # building
 target
@@ -28,6 +36,18 @@ pom.xml.releaseBackup
 release.properties
 TestJavaClass*.java
 interpolated-*.xml
+out
+dist/*
+bin/
+libexec/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+logs/
+project/*-shim.sbt
+project/project/
+project/target/
 
 # other scm
 .svn
