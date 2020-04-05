@@ -74,7 +74,7 @@ class UnseenAlertsDataFrame(df: DataFrame, knownDataFrameName: String, colNames:
       case Min => watchedStatValue < statValue
       case Max => watchedStatValue > statValue
       case Mean => (watchedStatValue > statValue + statValue*0.2) || (watchedStatValue < statValue - statValue*0.2)
-      case Stddev => (watchedStatValue > statValue + statValue*0.2) || (watchedStatValue < statValue - statValue*0.2)
+      case Stddev => watchedStatValue > statValue*2
     }
   }
 

@@ -1,10 +1,9 @@
 package io.hops.monitoring.util
 
 import Constants.Stats
-import io.hops.monitoring.util.Constants.Stats.{Avg, Count, Max, Mean, Min, Stddev, Sum}
+import io.hops.monitoring.util.Constants.Stats.{Avg, Count, Max, Mean, Min, Stddev, Sum, Pow2Sum}
 
 import scala.collection.mutable
-import scala.collection.mutable.HashMap
 
 object StatsUtil {
 
@@ -13,12 +12,6 @@ object StatsUtil {
 
   def isCompound(stat: String): Boolean =
     Stats.Compound.contains(stat)
-
-  def isComplex(stat: String): Boolean =
-    Stats.Complex.contains(stat)
-
-  def needsIterate(stat: String): Boolean =
-    Stats.Iterative.contains(stat)
 
   def defaultStat(stat: String, value: Float): Float =
     if (stat == Stats.Count) 1.0.toFloat else value
@@ -33,21 +26,13 @@ object StatsUtil {
         case Min => Compute.min(value, stats)
         case Count => Compute.count(stats)
         case Sum => Compute.sum(value, stats)
+        case Pow2Sum => Compute.pow2Sum(value, stats)
       }
     def compoundStat(stat: String, stats: mutable.HashMap[String, Option[Float]]): Float = {
       stat match {
         case Avg => Compute.avg(stats)
         case Mean => Compute.mean(stats)
-      }
-    }
-    def complexStat(stat: String, value: Float, stats: mutable.HashMap[String, Option[Float]]): Float = {
-      stat match {
-        case Stddev => Compute.stddev_residual(value, stats)
-      }
-    }
-    def complexStat(stat: String, stats: mutable.HashMap[String, Option[Float]]): Float = {
-      stat match {
-        case Stddev => Compute.stddev_sam(stats)
+        case Stddev => Compute.stddevSam(stats)
       }
     }
 
@@ -69,13 +54,13 @@ object StatsUtil {
     def sum(value: Float, stats: mutable.HashMap[String, Option[Float]]): Float =
       value + stats(Sum).get
 
-    def stddev_residual(value: Float, stats: mutable.HashMap[String, Option[Float]]): Float =
-      math.pow(value - stats(Avg).get, 2.0.toFloat).toFloat
+    def pow2Sum(value: Float, stats: mutable.HashMap[String, Option[Float]]): Float =
+      math.pow(value, 2).toFloat + stats(Pow2Sum).get
 
-    def stddev_sam(stats: mutable.HashMap[String, Option[Float]]): Float =
-      math.sqrt(stats(Stddev).get / (stats(Count).get - 1)).toFloat
+    def stddevSam(stats: mutable.HashMap[String, Option[Float]]): Float =
+      math.sqrt((stats(Pow2Sum).get / (stats(Count).get - 1)) - math.pow(stats(Avg).get, 2)).toFloat
 
-    def stddev_pop(stats: mutable.HashMap[String, Option[Float]]): Float =
-      math.sqrt(stats(Stddev).get / stats(Count).get).toFloat
+    def stddevPop(stats: mutable.HashMap[String, Option[Float]]): Float =
+      math.sqrt((stats(Pow2Sum).get / stats(Count).get) - math.pow(stats(Avg).get, 2)).toFloat
   }
 }

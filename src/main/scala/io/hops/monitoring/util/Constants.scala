@@ -38,16 +38,15 @@ object Constants {
     val Min = "min"
     val Count = "count"
     val Sum = "sum"
+    val Pow2Sum = "pow2Sum"
     val Avg = "avg"
     val Mean = "mean"
     val Stddev = "stddev"
 
-    val Simple = Seq(Max, Min, Sum, Count)
-    val Compound = Seq(Avg, Mean)
-    val Complex = Seq(Stddev)
-    val Iterative = Seq(Stddev)
+    val Simple = Seq(Max, Min, Sum, Count, Pow2Sum)
+    val Compound = Seq(Avg, Mean, Stddev)
     val Watchable = Seq(Max, Min, Mean, Stddev)
-    val All = Seq(Max, Min, Sum, Count, Avg, Mean, Stddev)
+    val All = Seq(Max, Min, Sum, Count, Pow2Sum, Avg, Mean, Stddev)
   }
 
   // Watcher

@@ -74,21 +74,6 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
       stateStats(colName) = updatedStats
     })
 
-    // complex stats (iterative)
-    instancesComplexIt.foreach(instance => {
-      stateStats.keys.foreach(colName => {
-        val colStats = stateStats(colName)
-        val instanceValue = instance.getAs[Double](colName).toFloat
-        val updatedStats = updateColComplexStats(instanceValue, colStats)
-        stateStats(colName) = updatedStats
-      })
-    })
-    stateStats.keys.foreach(colName => { // complex stats (compound)
-      val colStats = stateStats(colName)
-      val updatedStats = updateColComplexStats(colStats)
-      stateStats(colName) = updatedStats
-    })
-
     // Update state
     state.update(stateStats)
   }
@@ -116,26 +101,9 @@ class StatsWindowedDataFrame(kvgd: KeyValueGroupedDataset[Window, Row], schema: 
     colStats
   }
 
-  private def updateColComplexStats(instanceValue: Float, colStats: mutable.HashMap[String, Option[Float]]): mutable.HashMap[String, Option[Float]] = {
-    colStats.keys.filter(StatsUtil.isComplex)
-      .foreach(stat => {
-        val statValue = StatsUtil.Compute.complexStat(stat, instanceValue, colStats)
-        colStats(stat) = Some(statValue)
-      })
-    colStats
-  }
-  private def updateColComplexStats(colStats: mutable.HashMap[String, Option[Float]]): mutable.HashMap[String, Option[Float]] = {
-    colStats.keys.filter(StatsUtil.isComplex)
-      .foreach(stat => {
-        val statValue = StatsUtil.Compute.complexStat(stat, colStats)
-        colStats(stat) = Some(statValue)
-      })
-    colStats
-  }
-
   private def buildRow(window: Window, state: StatsWindowedDataFrameState): Seq[Row] = {
-    state.stats.map(stat =>
-      Row(Row(window.start, window.end) +: state.statsMap.map(colStat => colStat._2(stat).get).toArray :+ stat:_*))
+    stats.map(stat =>
+        Row(Row(window.start, window.end) +: state.statsMap.map(colStat => colStat._2(stat).get).toArray :+ stat:_*))
   }
 
   // Alerts

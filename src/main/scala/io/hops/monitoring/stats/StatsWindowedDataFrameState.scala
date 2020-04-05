@@ -10,6 +10,9 @@ case class StatsWindowedDataFrameState(private val colNames: Seq[String], privat
     if (_stats.contains(Stats.Avg) || _stats.contains(Stats.Mean)) {
       _stats = _stats ++ Seq(Stats.Sum, Stats.Count)
     }
+    if (_stats.contains(Stats.Stddev)) {
+      _stats = _stats ++ Seq(Stats.Pow2Sum)
+    }
     _stats.distinct
   }
 
