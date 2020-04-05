@@ -103,6 +103,11 @@
       <version>${scala.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.amazon.deequ</groupId>
+      <artifactId>deequ</artifactId>
+      <version>1.0.2</version>
+    </dependency>
   </dependencies>
 
   <build>
