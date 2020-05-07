@@ -1,0 +1,16 @@
+package io.hops.monitoring.utils
+
+import java.util
+
+import ReflectionUtil.ps
+import io.hops.util.Hops
+import javax.ws.rs.core.Response
+
+import scala.reflect.ClassTag
+
+object RequestsUtil {
+  def clientWrapper(path: String, httpMethod: String, queryParams: util.Map[String, AnyRef]): Response = {
+    val response = ps(ClassTag.apply[Hops](classOf[Hops])).call('clientWrapper)(path, httpMethod, queryParams)
+    response.asInstanceOf[Response]
+  }
+}

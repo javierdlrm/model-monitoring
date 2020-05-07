@@ -1,11 +1,12 @@
 package io.hops.monitoring.examples.iris
 
-import io.hops.monitoring.streams.manager.StreamManager
-import io.hops.monitoring.util.Constants.Stats._
-import io.hops.monitoring.util.{DataFrameUtil, LoggerUtil}
+import io.hops.monitoring.utils.Constants.Stats.Descriptive._
+import io.hops.monitoring.utils.{DataFrameUtil, LoggerUtil}
 import io.hops.monitoring.window.WindowSetting
-import io.hops.monitoring.io.dataframe.DataFrameReader._
-import io.hops.monitoring.io.file.FileWriter._
+import io.hops.monitoring.io.dataframe.DataFrameSource._
+import io.hops.monitoring.io.file.FileSink._
+import io.hops.monitoring.stats.DatasetStats
+import io.hops.monitoring.pipeline.PipelineManager
 import io.hops.util.Hops
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.avro.from_avro
@@ -28,7 +29,7 @@ object IrisMLMonitoring {
     LoggerUtil.log.info(s"[IrisMLMonitoring] Starting job...")
 
     // Check arguments
-    val (kfkTopic, jobTimeout, windowDuration, slideDuration, watermarkDelay) = checkArguments(args)
+    val (kfkTopic, timeout, windowDuration, slideDuration, watermarkDelay) = checkArguments(args)
 
     // Streaming context
     val spark = createSparkSession()
@@ -44,7 +45,7 @@ object IrisMLMonitoring {
 
     // Manually read from Kafka
     val logsDF = createDF(spark, kfkTopic)
-      .select(from_avro(col("value"), kfkSchema) as 'logs ) // parse avro
+      .select(from_avro(col("value"), kfkSchema) as 'logs) // parse avro
 
     // Manually parse schema:
     // NOTE: RequestTimestamp has to be divided by 1000. Issue in spark-avro: https://github.com/databricks/spark-avro/issues/229
@@ -56,59 +57,40 @@ object IrisMLMonitoring {
 
     // Parameters
     val timeColumnName = "requestTimestampSecs"
-    val colNames = kfkInstanceStructSchema.map(_.name)
+    val cols = kfkInstanceStructSchema.map(_.name)
     val stats = Array(Min, Max, Mean, Avg, Count, Stddev)
+    val outlierStats = Array(Min, Max, Mean, Stddev)
 
     // Monitor
     val mdf = instancesDF.monitor
-      .withSchema("instance", kfkInstanceStructSchema)  // parse request(Array(Double)) to request(Schema)
+      .withSchema("instance", kfkInstanceStructSchema) // parse request(Array(Double)) to request(Schema)
 
     // Windowed stats
-    val sdf = mdf
-      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay)) // Manual window
-//      .window(timeColumnName, sampleSize = 100, logsPath=s"$ResourcesDir$kfkTopic") // Sample size based
-//      .window(timeColumnName, defaultResolver, logsPath=s"$ResourcesDir$kfkTopic-windowresolver") // Auto
-      .stats(colNames, stats)
+    val wdf = mdf
+      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay)) // Using manual settings
+    //      .window(timeColumnName, WindowSetting(minSize = 200)) // Using min sample size
+
+    val sdf = wdf.stats(cols, stats)
 
     // Stream writer
-    val ssw = sdf
-      .output("StatsStreamingQuery")
-      .parquet(kfkTopic, ResourcesDir)
+    val statsPipeline = sdf
+      .output("StatsPipeline")
+      .parquet(s"$kfkTopic-stats", ResourcesDir)
 
-    // Alerts
-    val asw = sdf
-      .watch(colNames)
-      .unseen(TrainDatasetName)
-      .output("AlertsStreamingQuery")
-      .parquet(s"$kfkTopic-alerts", ResourcesDir)
+    // Outliers
+    val outliersPipeline = sdf
+      .outliers(cols, outlierStats, DatasetStats(getDescStats))
+      .output("OutliersPipeline")
+      .parquet(s"$kfkTopic-outliers", ResourcesDir)
 
     // Execute queries
-    StreamManager
+    PipelineManager
       .init(spark)
-//      .awaitAll(Seq(ssw), jobTimeout)
-      .awaitAll(Seq(ssw, asw), jobTimeout)
+      .awaitAll(Seq(statsPipeline, outliersPipeline), timeout)
 
     // Close session
     LoggerUtil.log.info("[IrisMLMonitoring] Shutting down spark job...")
     spark.close()
-  }
-
-  private def defaultResolver: (WindowSetting, Long) => WindowSetting = (setting: WindowSetting, rps: Long) => {
-    val simple = new java.text.SimpleDateFormat("HH:mm:ss:SSS Z")
-    LoggerUtil.log.info(s"[IrisMLMonitoring](${simple.format(new java.util.Date(System.currentTimeMillis()))}) Default resolver: Setting: [$setting] and RPS ($rps)")
-
-//    val sampleSize = 200
-//    val duration = sampleSize / rps
-//    val slideDuration = duration * 0.1.toLong
-//    val watermarkDelay = duration * 0.4.toLong
-
-    val duration = 6
-    val slideDuration = 3
-    val watermarkDelay = 4
-
-    // Window estimation
-//    LoggerUtil.log.info(s"[IrisMLMonitoring] Default resolver: Decision ($duration, $slideDuration, $watermarkDelay)")
-    WindowSetting(Seconds(duration), Seconds(slideDuration), Seconds(watermarkDelay))
   }
 
   def createDF(spark: SparkSession, kfk_topic: String): DataFrame = {
@@ -144,57 +126,109 @@ object IrisMLMonitoring {
     (args(0), Seconds(args(1).toLong), Milliseconds(args(2).toLong), Milliseconds(args(3).toLong), Milliseconds(args(4).toLong))
   }
 
-  def getSchemas: (String, String) = {
-    val kfkInstanceSchema = """{
-                              |  "type" : "struct",
-                              |  "fields" : [ {
-                              |    "name" : "sepal_length",
-                              |    "type" : "double",
-                              |    "nullable" : true,
-                              |    "metadata" : { }
-                              |  }, {
-                              |    "name" : "sepal_width",
-                              |    "type" : "double",
-                              |    "nullable" : true,
-                              |    "metadata" : { }
-                              |  }, {
-                              |    "name" : "petal_length",
-                              |    "type" : "double",
-                              |    "nullable" : true,
-                              |    "metadata" : { }
-                              |  }, {
-                              |    "name" : "petal_width",
-                              |    "type" : "double",
-                              |    "nullable" : true,
-                              |    "metadata" : { }
-                              |  } ]
-                              |}""".stripMargin
-    val kfkReqSchema = """{
-                         |    "fields": [
-                         |        {
-                         |            "metadata": {},
-                         |            "name": "signature_name",
-                         |            "nullable": true,
-                         |            "type": "string"
-                         |        },
-                         |        {
-                         |            "metadata": {},
-                         |            "name": "instances",
-                         |            "nullable": true,
-                         |            "type": {
-                         |                "containsNull": true,
-                         |                "elementType": {
-                         |                    "containsNull": true,
-                         |                    "elementType": "double",
-                         |                    "type": "array"
-                         |                },
-                         |                "type": "array"
-                         |            }
-                         |        }
-                         |    ],
-                         |    "type": "struct"
-                         |}""".stripMargin
+  //////////////////////////////
+  // TEMPORARY HARD_CODE
+  //////////////////////////////
 
+  def getSchemas: (String, String) = {
+
+    // TODO: Receive from kafka topic schema.
+
+    val kfkInstanceSchema =
+      """{
+        |  "type" : "struct",
+        |  "fields" : [ {
+        |    "name" : "sepal_length",
+        |    "type" : "double",
+        |    "nullable" : true,
+        |    "metadata" : { }
+        |  }, {
+        |    "name" : "sepal_width",
+        |    "type" : "double",
+        |    "nullable" : true,
+        |    "metadata" : { }
+        |  }, {
+        |    "name" : "petal_length",
+        |    "type" : "double",
+        |    "nullable" : true,
+        |    "metadata" : { }
+        |  }, {
+        |    "name" : "petal_width",
+        |    "type" : "double",
+        |    "nullable" : true,
+        |    "metadata" : { }
+        |  } ]
+        |}""".stripMargin
+    val kfkReqSchema =
+      """{
+        |    "fields": [
+        |        {
+        |            "metadata": {},
+        |            "name": "signature_name",
+        |            "nullable": true,
+        |            "type": "string"
+        |        },
+        |        {
+        |            "metadata": {},
+        |            "name": "instances",
+        |            "nullable": true,
+        |            "type": {
+        |                "containsNull": true,
+        |                "elementType": {
+        |                    "containsNull": true,
+        |                    "elementType": "double",
+        |                    "type": "array"
+        |                },
+        |                "type": "array"
+        |            }
+        |        }
+        |    ],
+        |    "type": "struct"
+        |}""".stripMargin
     (kfkInstanceSchema, kfkReqSchema)
+  }
+
+  def getDescStats: Map[String, Map[String, Double]] = {
+
+    // TODO: Download from feature store.
+    // NOTE: Issue with hops-util for scala
+
+    Map(
+      "species" -> Map(
+        Count -> 120.0,
+        Mean -> 1.0,
+        Stddev -> 0.84016806,
+        Min -> 0.0,
+        Max -> 2.0
+      ),
+      "petal_width" -> Map(
+        Count -> 120.0,
+        Mean -> 1.1966667,
+        Stddev -> 0.7820393,
+        Min -> 0.1,
+        Max -> 2.5
+      ),
+      "petal_length" -> Map(
+        Count -> 120,
+        Mean -> 3.7391667,
+        Stddev -> 1.8221004,
+        Min -> 1.0,
+        Max -> 6.9
+      ),
+      "sepal_width" -> Map(
+        Count -> 120.0,
+        Mean -> 3.065,
+        Stddev -> 0.42715594,
+        Min -> 2.0,
+        Max -> 4.4
+      ),
+      "sepal_length" -> Map(
+        Count -> 120.0,
+        Mean -> 5.845,
+        Stddev -> 0.86857843,
+        Min -> 4.4,
+        Max -> 7.9
+      )
+    )
   }
 }
