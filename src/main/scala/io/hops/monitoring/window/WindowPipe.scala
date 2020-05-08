@@ -16,7 +16,7 @@ class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSet
 
   // Window
 
-  private def selectCols(df: DataFrame, cols: Seq[String]): DataFrame =
+  private def selectCols(cols: Seq[String]): DataFrame =
     source.select(col(timestampCol) +: cols.map(colName => col(colName)): _*)
 
   private def applyWindow(df: DataFrame): DataFrame = {
@@ -35,7 +35,7 @@ class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSet
   // Joints
 
   override def kvgd(cols: Seq[String]): (KeyValueGroupedDataset[Window, Row], StructType) = {
-    val df = applyWindow(selectCols(source, cols))
+    val df = applyWindow(selectCols(cols))
     (applyGroupByKey(df), df.schema)
   }
 }
