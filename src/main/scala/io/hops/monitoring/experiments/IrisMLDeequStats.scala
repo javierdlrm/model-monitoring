@@ -5,10 +5,10 @@ import com.amazon.deequ.analyzers.{Analysis, InMemoryStateProvider, StandardDevi
 import com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsDataFrame
 import com.amazon.deequ.analyzers.runners.AnalysisRunner
 import com.amazon.deequ.checks.CheckStatus
-import io.hops.monitoring.io.dataframe.DataFrameReader._
-import io.hops.monitoring.util.Constants.File
-import io.hops.monitoring.util.Constants.Stats._
-import io.hops.monitoring.util.{DataFrameUtil, LoggerUtil}
+import io.hops.monitoring.io.dataframe.DataFrameSource._
+import io.hops.monitoring.utils.Constants.File
+import io.hops.monitoring.utils.Constants.Stats.Descriptive._
+import io.hops.monitoring.utils.{DataFrameUtil, LoggerUtil}
 import io.hops.monitoring.window.WindowSetting
 import io.hops.util.Hops
 import org.apache.spark.SparkConf
@@ -75,10 +75,11 @@ object IrisMLDeequStats {
       .withSchema("instance", kfkInstanceStructSchema)  // parse request(Array(Double)) to request(Schema)
 
     // Windowed stats
-    val sdf = mdf
+    val wdf = mdf
       .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay))
 
     // Deequ
+
     // create a stateStore to hold our stateful metrics
     val stateStoreCurr = InMemoryStateProvider()
     val stateStoreNext = InMemoryStateProvider()
@@ -91,7 +92,8 @@ object IrisMLDeequStats {
       .addAnalyzers(Seq(Size(), Minimum(colNames(3)), Maximum(colNames(3)), Mean(colNames(3)), StandardDeviation(colNames(3))))
 
     // Stream writer
-    val ssw = sdf.df
+    val ssw = wdf
+      .df(colNames)
       .writeStream
       .queryName("DeequStats")
       .foreachBatch((batchDF: DataFrame, batchId: Long) => {
@@ -110,7 +112,7 @@ object IrisMLDeequStats {
           aggregateWith = Some(stateStoreCurr),
           saveStatesWith = Some(stateStoreNext))
 
-        // verify critical metrics for this microbatch i.e., trade quantity, ipaddr not null, etc.
+        // verify critical metrics for this microbatch
         val verificationResult = VerificationSuite()
           .onData(batchDF)
           .run()
@@ -147,7 +149,10 @@ object IrisMLDeequStats {
           .save()
 
 //        batchDF.unpersist()
-      }).start.awaitTermination(jobTimeout.milliseconds)
+      })
+
+    LoggerUtil.log.info("[DeequForeachBatch] Starting query...")
+    ssw.start.awaitTermination(jobTimeout.milliseconds)
 
     // Close session
     LoggerUtil.log.info("[DeequForeachBatch] Shutting down spark job...")
