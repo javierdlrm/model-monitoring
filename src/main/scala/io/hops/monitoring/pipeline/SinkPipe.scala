@@ -1,6 +1,5 @@
 package io.hops.monitoring.pipeline
 
-import io.hops.monitoring.utils.LoggerUtil
 import org.apache.spark.sql.streaming.{DataStreamWriter, OutputMode}
 import org.apache.spark.sql.{DataFrame, Row}
 

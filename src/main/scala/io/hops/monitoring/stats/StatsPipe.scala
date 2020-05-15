@@ -1,33 +1,35 @@
 package io.hops.monitoring.stats
 
-import io.hops.monitoring.outliers.OutliersPipeJoint
+import io.hops.monitoring.drift.StatsDriftPipeJoint
+import io.hops.monitoring.outliers.StatsOutliersPipeJoint
 import io.hops.monitoring.pipeline.SinkPipeJoint
-import io.hops.monitoring.utils.Constants.Stats._
+import io.hops.monitoring.stats.aggregators.StatAggregator
+import io.hops.monitoring.stats.definitions.StatDefinition
+import io.hops.monitoring.utils.Constants.Vars.{FeatureColName, TypeColName}
 import io.hops.monitoring.utils.Constants.Window.WindowColName
 import io.hops.monitoring.utils.DataFrameUtil.Encoders
-import io.hops.monitoring.utils.{LoggerUtil, StatsUtil}
+import io.hops.monitoring.utils.{DataFrameUtil, LoggerUtil, StatsUtil}
 import io.hops.monitoring.window.Window
 import org.apache.spark.sql.streaming.{GroupState, GroupStateTimeout, OutputMode}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 
-import scala.collection.mutable
+import scala.collection.immutable.HashMap
 
-class StatsPipe(source: KeyValueGroupedDataset[Window, Row], schema: StructType, cols: Seq[String], override val stats: Seq[String])
-  extends SinkPipeJoint with OutliersPipeJoint {
+class StatsPipe(source: KeyValueGroupedDataset[Window, Row], schema: StructType, cols: Seq[String], override val stats: Seq[StatDefinition])
+  extends SinkPipeJoint with StatsOutliersPipeJoint with StatsDriftPipeJoint {
 
   LoggerUtil.log.info(s"[StatsPipe] Created over columns [${cols.mkString(", ")}] for stats [${stats.mkString(", ")}]")
 
   private var _df: Option[DataFrame] = None
 
-  private val _statsColFields = schema.filter(field => cols.contains(field.name))
-  private val _statsFields = schema.find(field => field.name == WindowColName).get +: _statsColFields :+ StructField(StatColName, StringType)
+  private val _statsColFields = stats.map(s => StatAggregator.getStructField(s.name))
+  private val _statsFields = StructField(WindowColName, DataFrameUtil.Schemas.structType[Window]()) +: StructField(FeatureColName, StringType) +: StructField(TypeColName, StringType) +: _statsColFields
   private val _statsSchema = StructType(_statsFields)
 
   // Flat map groups with state
 
   private def applyFlatMapGroupsWithState(kvgd: KeyValueGroupedDataset[Window, Row]): DataFrame = {
-    LoggerUtil.log.info(s"[StatsPipe] Apply flat map groups with state: kvgd -> ${kvgd != null}")
 
     val rowEncoder = Encoders.rowEncoder(_statsSchema)
     val stateEncoder = Encoders.statsWindowedStateEncoder
@@ -39,7 +41,7 @@ class StatsPipe(source: KeyValueGroupedDataset[Window, Row], schema: StructType,
 
   private def computeGroupStats(window: Window, instances: Iterator[Row], groupState: GroupState[StatsPipeState]): Iterator[Row] = {
     // Init state
-    var state = if (!groupState.exists) StatsPipeState(cols, stats) else groupState.get
+    var state = if (!groupState.exists) new StatsPipeState(cols, stats) else groupState.get
     // Update stats
     state = updateState(state, instances)
     // Create stats row
@@ -55,58 +57,36 @@ class StatsPipe(source: KeyValueGroupedDataset[Window, Row], schema: StructType,
   }
 
   private def updateState(state: StatsPipeState, rows: Iterator[Row]): StatsPipeState = {
-    val stateStats = state.statsMap
-    var n_instances = 0
+    val (firstIterator, secondIterator) = rows.duplicate
 
-    // simple stats (iteratively)
-    rows.foreach(instance => { // for each instance
-      n_instances += 1
-      stateStats.keys.foreach(colName => { // for each col
-        val colStats = stateStats(colName)
-        val instanceValue = instance.getAs[Double](colName).toFloat // get current value
-        val updatedStats = updateColSimpleStats(colStats, instanceValue) // get updated stats
-        stateStats(colName) = updatedStats // update state stats
+    firstIterator.foreach(instance => { // for each instance
+      state.stats.features.foreach(feature => { // for each feature
+        val value = instance.getAs[Double](feature) // get current value
+        state.stats.computeSimple(feature, value) // recompute with new feature value
       })
     })
 
-    // compound stats (batch)
-    stateStats.keys.foreach(colName => {
-      val colStats = stateStats(colName)
-      val updatedStats = updateColCompoundStats(colStats)
-      stateStats(colName) = updatedStats
+    state.stats.features.foreach(feature => { // for each feature
+      state.stats.computeCompound(feature) // compute compound stats with simple pre-computed stats
     })
 
-    // Update state
-    state.update(stateStats)
-  }
-
-  private def updateColSimpleStats(colStats: mutable.HashMap[String, Option[Double]], instanceValue: Double): mutable.HashMap[String, Option[Double]] = {
-    colStats.keys.filter(StatsUtil.isSimple)
-      .foreach(stat => { // for each simple stat
-        val statValue =
-          if (colStats(stat) isEmpty) { // Check default simple stat
-            StatsUtil.defaultStat(stat, instanceValue)
-          } else {
-
-            StatsUtil.Compute.simpleStat(stat, instanceValue, colStats)
-          }
-        colStats(stat) = Some(statValue) // update stat
+    secondIterator.foreach(instance => { // for each instance
+      val values = state.stats.features.map(f => instance.getAs[Double](f)) // same order: feature - value
+      val pairs = HashMap(state.stats.features.zip(values): _*) // zip: feature - values
+      state.stats.features.foreach(feature => { // for each feature
+        state.stats.computeMultiple(feature, pairs)
       })
-    colStats
-  }
+    })
 
-  private def updateColCompoundStats(colStats: mutable.HashMap[String, Option[Double]]): mutable.HashMap[String, Option[Double]] = {
-    colStats.keys.filter(StatsUtil.isCompound)
-      .foreach(stat => { // for each compound stat
-        val statValue = StatsUtil.Compute.compoundStat(stat, colStats)
-        colStats(stat) = Some(statValue)
-      })
-    colStats
+    state
   }
 
   private def buildRow(window: Window, state: StatsPipeState): Seq[Row] = {
-    stats.map(stat =>
-      Row(Row(window.start, window.end) +: state.statsMap.map(colStat => colStat._2(stat).get).toArray :+ stat: _*))
+    state.features.map(feature => {
+      val dataType = schema.find(_.name == feature).get.dataType
+      val stats = state.stats.getFeatureStats(feature)
+      Row(Row(window.start, window.end) +: feature +: StatsUtil.getFeatureType(dataType) +: stats.map(_.value.getAny): _*)
+    })
   }
 
   // Joints

@@ -30,34 +30,66 @@ object Constants {
 
   }
 
+  // Variable
+
+  object Vars {
+    val FeatureColName = "feature"
+    val TypeColName = "type"
+
+    val ValueColName = "value"
+    val DescriptionColName = "description"
+
+    val NumericalColName = "numerical"
+    val CategoricalColName = "categorical"
+  }
+
   // Stats
 
   object Stats {
     val StatColName = "stat"
 
     object Descriptive {
+      // Simple
       val Max = "max"
       val Min = "min"
       val Count = "count"
-      val Sum = "sum"
-      val Pow2Sum = "pow2Sum" // auxiliar
+      val Sum = "sum" // aux
+      val Pow2Sum = "pow2Sum" // aux
+      val Distr = "distr"
 
+      // Compound
       val Avg = "avg"
       val Mean = "mean"
       val Stddev = "stddev"
 
-      val Simple = Seq(Max, Min, Sum, Count, Pow2Sum) // one-pass
-      val Compound = Seq(Avg, Mean, Stddev) // two-passes
-      val All = Seq(Max, Min, Sum, Count, Pow2Sum, Avg, Mean, Stddev)
+      // Collective
+      val Cov = "cov"
+      val Corr = "corr"
+
+      val Simple = Seq(Max, Min, Sum, Count, Pow2Sum, Distr) // one-pass
+      val Compound = Seq(Avg, Mean, Stddev) // uses simple
+      val Multiple = Seq(Cov, Corr) // multiple vars
+
+      val All = Seq(Max, Min, Sum, Count, Pow2Sum, Avg, Mean, Stddev, Distr, Cov, Corr)
     }
+
   }
 
-  // Watcher
+  // Outliers
 
   object Outliers {
-    val FeatureColName = "feature"
-    val ValueColName = "value"
-    val ThresholdColName = "threshold"
+    val OutlierColName = "outlier"
+
+    val DescriptiveStats = "descriptiveStats"
+  }
+
+  // Drift
+
+  object Drift {
+    val AlgorithmColName = "algorithm"
+    val DriftColName = "drift"
+
+    val Wasserstein = "wasserstein"
   }
 
   // File

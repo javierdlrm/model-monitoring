@@ -1,12 +1,18 @@
 package io.hops.monitoring.examples.iris
 
-import io.hops.monitoring.utils.Constants.Stats.Descriptive._
-import io.hops.monitoring.utils.{DataFrameUtil, LoggerUtil}
-import io.hops.monitoring.window.WindowSetting
+import io.hops.monitoring.drift.detectors.WassersteinDetector
 import io.hops.monitoring.io.dataframe.DataFrameSource._
 import io.hops.monitoring.io.file.FileSink._
-import io.hops.monitoring.stats.DatasetStats
+import io.hops.monitoring.outliers.detectors.DescriptiveStatsDetector
 import io.hops.monitoring.pipeline.PipelineManager
+import io.hops.monitoring.stats.Baseline
+import io.hops.monitoring.stats.definitions.Corr.CorrType
+import io.hops.monitoring.stats.definitions.Cov.CovType
+import io.hops.monitoring.stats.definitions.Stddev.StddevType
+import io.hops.monitoring.stats.definitions._
+import io.hops.monitoring.utils.Constants.Stats.Descriptive
+import io.hops.monitoring.utils.{DataFrameUtil, LoggerUtil}
+import io.hops.monitoring.window.WindowSetting
 import io.hops.util.Hops
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.avro.from_avro
@@ -22,7 +28,7 @@ object IrisMLMonitoring {
 
   // constants
   private val ResourcesDir = "/Projects/" + Hops.getProjectName + "/Resources/Iris/"
-  private val TrainDatasetName = "iris_train_dataset"
+  //  private val TrainDatasetName = "iris_train_dataset"
 
   def main(args: Array[String]): Unit = {
 
@@ -39,7 +45,7 @@ object IrisMLMonitoring {
 
     // Get schemas
     // NOTE: This should be obtained from kafka topic schema
-    val (kfkInstanceSchema, kfkReqSchema) = getSchemas
+    val (kfkInstanceSchema, kfkReqSchema) = IrisMLSchemas.getSchemas
     val kfkReqStructSchema = DataFrameUtil.Schemas.structType(kfkReqSchema)
     val kfkInstanceStructSchema = DataFrameUtil.Schemas.structType(kfkInstanceSchema)
 
@@ -55,11 +61,31 @@ object IrisMLMonitoring {
       .drop("requestTimestamp")
       .withColumn("instance", explode(col("instances"))).drop("instances") // explode instances
 
-    // Parameters
+    // Schema
     val timeColumnName = "requestTimestampSecs"
     val cols = kfkInstanceStructSchema.map(_.name)
-    val stats = Array(Min, Max, Mean, Avg, Count, Stddev)
-    val outlierStats = Array(Min, Max, Mean, Stddev)
+
+    // Define baseline
+    val baseline = Baseline(IrisMLBaseline.getDescriptiveStats, IrisMLBaseline.getFeatureDistributions)
+
+    // Stats
+    val stats = Seq(
+      Min(), Max(), Mean(), Avg(), Count(),
+      Stddev(StddevType.SAMPLE),
+      Distr(baseline.getDistributionsBounds),
+      Cov(CovType.SAMPLE),
+      Corr(CorrType.SAMPLE)
+    )
+
+    // Define outlier detectors
+    val outlierDetectors = Seq(
+      new DescriptiveStatsDetector(Seq(Descriptive.Min, Descriptive.Max, Descriptive.Avg, Descriptive.Stddev))
+    )
+
+    // Define drift detectors
+    val driftDetectors = Seq(
+      new WassersteinDetector(threshold = 2, showAll = true)
+    )
 
     // Monitor
     val mdf = instancesDF.monitor
@@ -67,26 +93,33 @@ object IrisMLMonitoring {
 
     // Windowed stats
     val wdf = mdf
-      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay)) // Using manual settings
-    //      .window(timeColumnName, WindowSetting(minSize = 200)) // Using min sample size
+      .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay))
 
     val sdf = wdf.stats(cols, stats)
 
-    // Stream writer
+    // Stats
     val statsPipeline = sdf
       .output("StatsPipeline")
       .parquet(s"$kfkTopic-stats", ResourcesDir)
 
     // Outliers
     val outliersPipeline = sdf
-      .outliers(cols, outlierStats, DatasetStats(getDescStats))
+      .outliers(outlierDetectors, baseline)
       .output("OutliersPipeline")
       .parquet(s"$kfkTopic-outliers", ResourcesDir)
+
+    // Drift
+    val driftPipeline = sdf
+      .drift(driftDetectors, baseline)
+      .output("DriftPipeline")
+      .parquet(s"$kfkTopic-drift", ResourcesDir)
 
     // Execute queries
     PipelineManager
       .init(spark)
-      .awaitAll(Seq(statsPipeline, outliersPipeline), timeout)
+      .awaitAll(Seq(statsPipeline, outliersPipeline, driftPipeline), timeout)
+//          .awaitAll(Seq(statsPipeline, outliersPipeline), timeout)
+//          .awaitAll(Seq(statsPipeline), timeout)
 
     // Close session
     LoggerUtil.log.info("[IrisMLMonitoring] Shutting down spark job...")
@@ -124,111 +157,5 @@ object IrisMLMonitoring {
       System.exit(1)
     }
     (args(0), Seconds(args(1).toLong), Milliseconds(args(2).toLong), Milliseconds(args(3).toLong), Milliseconds(args(4).toLong))
-  }
-
-  //////////////////////////////
-  // TEMPORARY HARD_CODE
-  //////////////////////////////
-
-  def getSchemas: (String, String) = {
-
-    // TODO: Receive from kafka topic schema.
-
-    val kfkInstanceSchema =
-      """{
-        |  "type" : "struct",
-        |  "fields" : [ {
-        |    "name" : "sepal_length",
-        |    "type" : "double",
-        |    "nullable" : true,
-        |    "metadata" : { }
-        |  }, {
-        |    "name" : "sepal_width",
-        |    "type" : "double",
-        |    "nullable" : true,
-        |    "metadata" : { }
-        |  }, {
-        |    "name" : "petal_length",
-        |    "type" : "double",
-        |    "nullable" : true,
-        |    "metadata" : { }
-        |  }, {
-        |    "name" : "petal_width",
-        |    "type" : "double",
-        |    "nullable" : true,
-        |    "metadata" : { }
-        |  } ]
-        |}""".stripMargin
-    val kfkReqSchema =
-      """{
-        |    "fields": [
-        |        {
-        |            "metadata": {},
-        |            "name": "signature_name",
-        |            "nullable": true,
-        |            "type": "string"
-        |        },
-        |        {
-        |            "metadata": {},
-        |            "name": "instances",
-        |            "nullable": true,
-        |            "type": {
-        |                "containsNull": true,
-        |                "elementType": {
-        |                    "containsNull": true,
-        |                    "elementType": "double",
-        |                    "type": "array"
-        |                },
-        |                "type": "array"
-        |            }
-        |        }
-        |    ],
-        |    "type": "struct"
-        |}""".stripMargin
-    (kfkInstanceSchema, kfkReqSchema)
-  }
-
-  def getDescStats: Map[String, Map[String, Double]] = {
-
-    // TODO: Download from feature store.
-    // NOTE: Issue with hops-util for scala
-
-    Map(
-      "species" -> Map(
-        Count -> 120.0,
-        Mean -> 1.0,
-        Stddev -> 0.84016806,
-        Min -> 0.0,
-        Max -> 2.0
-      ),
-      "petal_width" -> Map(
-        Count -> 120.0,
-        Mean -> 1.1966667,
-        Stddev -> 0.7820393,
-        Min -> 0.1,
-        Max -> 2.5
-      ),
-      "petal_length" -> Map(
-        Count -> 120,
-        Mean -> 3.7391667,
-        Stddev -> 1.8221004,
-        Min -> 1.0,
-        Max -> 6.9
-      ),
-      "sepal_width" -> Map(
-        Count -> 120.0,
-        Mean -> 3.065,
-        Stddev -> 0.42715594,
-        Min -> 2.0,
-        Max -> 4.4
-      ),
-      "sepal_length" -> Map(
-        Count -> 120.0,
-        Mean -> 5.845,
-        Stddev -> 0.86857843,
-        Min -> 4.4,
-        Max -> 7.9
-      )
-    )
   }
 }

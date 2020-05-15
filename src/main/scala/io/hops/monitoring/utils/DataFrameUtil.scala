@@ -5,7 +5,10 @@ import org.apache.spark.sql.functions.col
 import io.hops.monitoring.window.Window
 import io.hops.monitoring.stats.StatsPipeState
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.types.{ArrayType, BinaryType, BooleanType, ByteType, DataType, DateType, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, ShortType, StringType, StructType, TimestampType}
+import org.apache.spark.sql.catalyst.ScalaReflection
+
+import scala.reflect.runtime.universe.TypeTag
 
 object DataFrameUtil {
 
@@ -42,6 +45,25 @@ object DataFrameUtil {
 
     def structType(jsonSchema: String): StructType = DataType.fromJson(jsonSchema).asInstanceOf[StructType]
 
+    def structType[T: TypeTag](): StructType = ScalaReflection.schemaFor[T].dataType.asInstanceOf[StructType]
+
+  }
+
+  object Types {
+
+    def toScala(dataType: DataType): Any =
+      dataType match {
+        case ByteType => Byte
+        case ShortType => Short
+        case IntegerType => Int
+        case LongType => Long
+        case FloatType => Float
+        case DoubleType => Double
+        case BinaryType => scala.Array
+        case BooleanType => Boolean
+        case at: ArrayType => scala.collection.Seq
+        case mt: MapType => scala.collection.Map
+      }
   }
 
 }

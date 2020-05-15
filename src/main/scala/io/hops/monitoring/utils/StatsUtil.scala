@@ -1,8 +1,8 @@
 package io.hops.monitoring.utils
 
-import io.hops.monitoring.utils.Constants.Stats.Descriptive.{Avg, Count, Max, Mean, Min, Stddev, Sum, Pow2Sum, Simple, Compound}
-
-import scala.collection.mutable
+import io.hops.monitoring.utils.Constants.Stats.Descriptive._
+import io.hops.monitoring.utils.Constants.Vars.{CategoricalColName, NumericalColName}
+import org.apache.spark.sql.types._
 
 object StatsUtil {
 
@@ -12,62 +12,24 @@ object StatsUtil {
   def isCompound(stat: String): Boolean =
     Compound.contains(stat)
 
-  def defaultStat(stat: String, value: Double): Double =
-    stat match {
-      case Max => value
-      case Min => value
-      case Count => 1.0
-      case Sum => value
-      case Pow2Sum => math.pow(value, 2)
+  def isMultiple(stat: String): Boolean =
+    Multiple.contains(stat)
+
+  def getFeatureType(dataType: DataType): String = {
+    dataType match {
+      case StringType => CategoricalColName
+      case _ => NumericalColName
     }
-
-  // Compute stats
-
-  object Compute {
-
-    def simpleStat(stat: String, value: Double, stats: mutable.HashMap[String, Option[Double]]): Double =
-      stat match {
-        case Max => Compute.max(value, stats)
-        case Min => Compute.min(value, stats)
-        case Count => Compute.count(stats)
-        case Sum => Compute.sum(value, stats)
-        case Pow2Sum => Compute.pow2Sum(value, stats)
-      }
-
-    def compoundStat(stat: String, stats: mutable.HashMap[String, Option[Double]]): Double = {
-      stat match {
-        case Avg => Compute.avg(stats)
-        case Mean => Compute.mean(stats)
-        case Stddev => Compute.stddevSam(stats)
-      }
-    }
-
-    def mean(stats: mutable.HashMap[String, Option[Double]]): Double =
-      (stats(Max).get - stats(Min).get) / stats(Count).get
-
-    def avg(stats: mutable.HashMap[String, Option[Double]]): Double =
-      stats(Sum).get / stats(Count).get
-
-    def max(value: Double, stats: mutable.HashMap[String, Option[Double]]): Double =
-      math.max(value, stats(Max).get)
-
-    def min(value: Double, stats: mutable.HashMap[String, Option[Double]]): Double =
-      math.min(value, stats(Min).get)
-
-    def count(stats: mutable.HashMap[String, Option[Double]]): Double =
-      stats(Count).get + 1.0
-
-    def sum(value: Double, stats: mutable.HashMap[String, Option[Double]]): Double =
-      value + stats(Sum).get
-
-    def pow2Sum(value: Double, stats: mutable.HashMap[String, Option[Double]]): Double =
-      math.pow(value, 2.0) + stats(Pow2Sum).get
-
-    def stddevSam(stats: mutable.HashMap[String, Option[Double]]): Double =
-      math.sqrt((stats(Pow2Sum).get - (stats(Count).get * math.pow(stats(Avg).get, 2.0))) / (stats(Count).get - 1.0))
-
-    def stddevPop(stats: mutable.HashMap[String, Option[Double]]): Double =
-      math.sqrt((stats(Pow2Sum).get - (stats(Count).get * math.pow(stats(Avg).get, 2.0))) / stats(Count).get)
   }
 
+  def round(value: Double, decimals: Int = 2, rounding: BigDecimal.RoundingMode.Value = BigDecimal.RoundingMode.HALF_UP): Double = {
+    if (value.isNaN || value.isInfinite)
+      value
+    else {
+      if (rounding == BigDecimal.RoundingMode.HALF_DOWN) LoggerUtil.log.info(s"[StatsUtil] value: $value...")
+      val c = BigDecimal(value).setScale(decimals, rounding).toDouble
+      if (rounding == BigDecimal.RoundingMode.HALF_DOWN) LoggerUtil.log.info(s"[StatsUtil] value: $value...  result: $c")
+      c
+    }
+  }
 }

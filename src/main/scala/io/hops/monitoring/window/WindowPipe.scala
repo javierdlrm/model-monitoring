@@ -1,16 +1,17 @@
 package io.hops.monitoring.window
 
+import java.sql.Timestamp
+
+import io.hops.monitoring.outliers.WindowOutliersPipeJoint
 import io.hops.monitoring.stats.StatsPipeJoint
 import io.hops.monitoring.utils.Constants.Window._
 import io.hops.monitoring.utils.DataFrameUtil.Encoders
 import io.hops.monitoring.utils.{LoggerUtil, WindowUtil}
 import org.apache.spark.sql.functions.{col, window}
-import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
-import java.sql.Timestamp
-
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 
-class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint {
+class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint with WindowOutliersPipeJoint {
 
   LoggerUtil.log.info(s"[WindowPipe] Created over column $timestampCol with duration ${setting.duration}, slide ${setting.slideDuration} and watermark ${setting.watermarkDelay}")
 

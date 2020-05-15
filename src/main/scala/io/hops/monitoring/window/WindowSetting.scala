@@ -1,7 +1,7 @@
 package io.hops.monitoring.window
 
-import org.apache.spark.streaming.Duration
 import io.hops.monitoring.utils.Constants.Window.Defaults
+import org.apache.spark.streaming.Duration
 
 case class WindowSetting(duration: Duration, slideDuration: Duration, watermarkDelay: Duration, minSize: Option[Int])
 

@@ -3,7 +3,6 @@ package io.hops.monitoring.pipeline
 import java.util.UUID
 
 import io.hops.monitoring.utils.LoggerUtil
-import io.hops.monitoring.utils.RichOption._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.StreamingQueryListener
 import org.apache.spark.streaming.Duration
