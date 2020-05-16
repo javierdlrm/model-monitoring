@@ -55,7 +55,7 @@ case class DistrAggregator(distr: Distr, feature: String) extends StatSimpleAggr
 
   private def getNumberOfBins(stats: HashMap[String, StatAggregator]): Int = {
     val numBins = distr.binning match {
-      case BinningType.STURGE => 1 + 3.322 * math.log(stats(Descriptive.Count).value.getDouble) // 1 + 3.322 log N
+      case BinningType.STURGE => 1 + 3.322 * ((math.log(stats(Descriptive.Count).value.getDouble) / math.log(2.0)) + 1e-10) // 1 + 3.322 log2 N
     }
     round(numBins, decimals = 0, rounding = BigDecimal.RoundingMode.UP).toInt
   }

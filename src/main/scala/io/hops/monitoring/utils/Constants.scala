@@ -37,7 +37,6 @@ object Constants {
     val TypeColName = "type"
 
     val ValueColName = "value"
-    val DescriptionColName = "description"
 
     val NumericalColName = "numerical"
     val CategoricalColName = "categorical"
@@ -66,6 +65,14 @@ object Constants {
       val Cov = "cov"
       val Corr = "corr"
 
+      // Types
+      val Sample = "sample"
+      val Population = "population"
+
+      // Distr
+      val Sturge = "sturge"
+
+      // Groups
       val Simple = Seq(Max, Min, Sum, Count, Pow2Sum, Distr) // one-pass
       val Compound = Seq(Avg, Mean, Stddev) // uses simple
       val Multiple = Seq(Cov, Corr) // multiple vars
@@ -90,6 +97,8 @@ object Constants {
     val DriftColName = "drift"
 
     val Wasserstein = "wasserstein"
+    val KullbackLeibler = "kullback-leibler"
+    val JensenShannon = "jensen-shannon"
   }
 
   // File

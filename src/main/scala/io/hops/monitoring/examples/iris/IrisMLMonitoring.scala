@@ -1,6 +1,6 @@
 package io.hops.monitoring.examples.iris
 
-import io.hops.monitoring.drift.detectors.WassersteinDetector
+import io.hops.monitoring.drift.detectors.{JensenShannonDetector, KullbackLeiblerDetector, WassersteinDetector}
 import io.hops.monitoring.io.dataframe.DataFrameSource._
 import io.hops.monitoring.io.file.FileSink._
 import io.hops.monitoring.outliers.detectors.DescriptiveStatsDetector
@@ -84,7 +84,9 @@ object IrisMLMonitoring {
 
     // Define drift detectors
     val driftDetectors = Seq(
-      new WassersteinDetector(threshold = 2, showAll = true)
+      new WassersteinDetector(threshold = 2.7, showAll = true),
+      new KullbackLeiblerDetector(threshold = 1.3, showAll = true),
+      new JensenShannonDetector(threshold = 0.5, showAll = true)
     )
 
     // Monitor

@@ -1,5 +1,6 @@
 package io.hops.monitoring.outliers.detectors
 
+import io.hops.monitoring.outliers.detectors.StatsOutlierDetector.StatsOutlierDetectorType
 import io.hops.monitoring.stats.StatValue
 import io.hops.monitoring.utils.Constants.Outliers
 import io.hops.monitoring.utils.Constants.Stats.Descriptive
@@ -9,7 +10,7 @@ import scala.collection.immutable.HashMap
 
 class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierDetector(statNames) {
 
-  override def name: String = Outliers.DescriptiveStats
+  override def name: StatsOutlierDetectorType.Value = StatsOutlierDetectorType.DESCRIPTIVE
 
   def detect(values: HashMap[String, StatValue], baseline: HashMap[String, StatValue]): HashMap[String, StatValue] = {
 

@@ -6,7 +6,7 @@ import io.hops.monitoring.stats.definitions.StatDefinition
 import io.hops.monitoring.stats.{Baseline, StatValue}
 import io.hops.monitoring.utils.Constants.Outliers.OutlierColName
 import io.hops.monitoring.utils.Constants.Stats.StatColName
-import io.hops.monitoring.utils.Constants.Vars.{DescriptionColName, FeatureColName, TypeColName}
+import io.hops.monitoring.utils.Constants.Vars.{ValueColName, FeatureColName, TypeColName}
 import io.hops.monitoring.utils.Constants.Window.WindowColName
 import io.hops.monitoring.utils.DataFrameUtil.{Encoders, Schemas}
 import io.hops.monitoring.utils.LoggerUtil
@@ -33,7 +33,7 @@ class StatsOutliersPipe(source: DataFrame, detectors: Seq[StatsOutlierDetector],
     StructField(FeatureColName, StringType),
     StructField(OutlierColName, StringType),
     StructField(StatColName, StringType),
-    StructField(DescriptionColName, DoubleType)
+    StructField(ValueColName, DoubleType)
   )
   private val outliersSchema = StructType(outliersSchemaFields)
 

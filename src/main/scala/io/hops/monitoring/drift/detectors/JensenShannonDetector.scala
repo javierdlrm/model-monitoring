@@ -7,9 +7,9 @@ import io.hops.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
+class JensenShannonDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
-  override def name: StatsDriftDetectorType.Value = StatsDriftDetectorType.WASSERSTEIN
+  override def name: StatsDriftDetectorType.Value = StatsDriftDetectorType.JENSENSHANNON
 
   override def stats: Seq[String] = Seq(Descriptive.Distr)
 
@@ -18,8 +18,8 @@ class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends S
     // get frequencies from the distributions
     val (observedFreq, baselineFreq) = StatsDriftDetector.getMatchedFrequencies(values(Descriptive.Distr).getMap, baseline(Descriptive.Distr).getMap)
 
-    // compute Wasserstein distance (also Earth Mover Distance)
-    val distance = wasserstein(observedFreq, baselineFreq)
+    // compute JensenShannon distance
+    val distance = jensenShannon(observedFreq, baselineFreq)
 
     // return distance if showAll or drift deteted
     val drift = distance > threshold
@@ -29,16 +29,9 @@ class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends S
       None
   }
 
-  def wasserstein(a: Seq[Double], b: Seq[Double]): Double = {
-    LoggerUtil.log.info(s"[WassersteinDetector] Detecting drift over: A [$a] and B [$b]")
-
-    var lastDistance: Double = 0.0
-    var totalDistance: Double = 0.0
-    for (i <- a.indices) {
-      val currentDistance = (a(i) + lastDistance) - b(i)
-      totalDistance += math.abs(currentDistance)
-      lastDistance = currentDistance
-    }
-    totalDistance
+  def jensenShannon(p: Seq[Double], q: Seq[Double]): Double = {
+    LoggerUtil.log.info(s"[JensenShannonDetector] Detecting drift over: P [$p] and Q [$q]")
+    val m: Seq[Double] = p.zip(q).map { case (pi, qi) => (pi + qi) / 2.0 } // M = 1/2 (P + Q)
+    (KullbackLeiblerDetector.kullbackLeibler(p, m) / 2.0) + (KullbackLeiblerDetector.kullbackLeibler(q, m) / 2.0) // JS(P||Q) = 1/2 KL(P||M) + 1/2 KL (Q||M)
   }
 }

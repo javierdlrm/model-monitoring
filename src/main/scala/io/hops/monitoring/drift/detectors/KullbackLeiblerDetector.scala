@@ -7,9 +7,9 @@ import io.hops.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
+class KullbackLeiblerDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
-  override def name: StatsDriftDetectorType.Value = StatsDriftDetectorType.WASSERSTEIN
+  override def name: StatsDriftDetectorType.Value = StatsDriftDetectorType.KULLBACKLEIBLER
 
   override def stats: Seq[String] = Seq(Descriptive.Distr)
 
@@ -18,8 +18,8 @@ class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends S
     // get frequencies from the distributions
     val (observedFreq, baselineFreq) = StatsDriftDetector.getMatchedFrequencies(values(Descriptive.Distr).getMap, baseline(Descriptive.Distr).getMap)
 
-    // compute Wasserstein distance (also Earth Mover Distance)
-    val distance = wasserstein(observedFreq, baselineFreq)
+    // compute KL distance
+    val distance = KullbackLeiblerDetector.kullbackLeibler(observedFreq, baselineFreq)
 
     // return distance if showAll or drift deteted
     val drift = distance > threshold
@@ -28,17 +28,15 @@ class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends S
     else
       None
   }
+}
 
-  def wasserstein(a: Seq[Double], b: Seq[Double]): Double = {
-    LoggerUtil.log.info(s"[WassersteinDetector] Detecting drift over: A [$a] and B [$b]")
+object KullbackLeiblerDetector {
+  def kullbackLeibler(p: Seq[Double], q: Seq[Double]): Double = {
+    LoggerUtil.log.info(s"[KullbackLeiblerDetector] Detecting drift over: P [$p] and Q [$q]")
 
-    var lastDistance: Double = 0.0
-    var totalDistance: Double = 0.0
-    for (i <- a.indices) {
-      val currentDistance = (a(i) + lastDistance) - b(i)
-      totalDistance += math.abs(currentDistance)
-      lastDistance = currentDistance
-    }
-    totalDistance
+    p.zip(q).foldLeft(0.0)((sum, values) => {
+      val (px, py) = values
+      sum + (px * math.log(px / py)) // sum(p(x) ln (p(x) / p(y))
+    })
   }
 }

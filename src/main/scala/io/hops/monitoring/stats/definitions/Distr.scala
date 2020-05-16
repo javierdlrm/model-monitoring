@@ -2,6 +2,7 @@ package io.hops.monitoring.stats.definitions
 
 import io.hops.monitoring.stats.definitions.Distr.BinningType
 import io.hops.monitoring.utils.Constants.Stats.Descriptive
+import io.hops.monitoring.utils.Constants.Stats.Descriptive.Sturge
 
 import scala.collection.immutable.HashMap
 
@@ -15,7 +16,7 @@ object Distr {
   object BinningType extends Enumeration {
     type Type = Value
 
-    val STURGE: BinningType.Value = Value //  1 + 3. 322 logN
+    val STURGE: BinningType.Value = Value(Sturge) //  1 + 3. 322 logN
 
     // TODO: add auto-binning options: Doane’s rule, Scott’s Rule, Rice’s Rule, Freedman-Diaconis’s Rule
   }
