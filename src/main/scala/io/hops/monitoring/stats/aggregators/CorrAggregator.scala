@@ -12,8 +12,9 @@ import scala.collection.mutable
 
 case class CorrAggregator(corr: Corr, feature: String) extends StatMultipleAggregator {
 
-  private var _value: StatValue = StatMap() // default
-  def value: StatValue = _value
+  private var _value: mutable.HashMap[String, Double] = _
+
+  def value: StatValue = StatMap(_value)
 
   private var _sums: mutable.HashMap[String, Double] = _
 
@@ -28,14 +29,12 @@ case class CorrAggregator(corr: Corr, feature: String) extends StatMultipleAggre
       _sums = mutable.HashMap(values.keys.map(_ -> 0.0).toSeq: _*)
 
     // Compute corr
-    _value = StatMap(
-      corr(corr.type_, values, stats)
-    )
+    _value = corr(corr.type_, values, stats)
 
     // Increment runs
     _runs += 1
 
-    _value
+    this.value
   }
 
   private def corr(type_ : CorrType.Value, pairs: HashMap[String, Double], stats: HashMap[String, HashMap[String, StatAggregator]]): mutable.HashMap[String, Double] = {
@@ -89,7 +88,7 @@ case class CorrAggregator(corr: Corr, feature: String) extends StatMultipleAggre
   private def checkCofeatureCorr(partner: String, stats: HashMap[String, StatAggregator]): (Double, Double) = {
     val agg = stats(Descriptive.Corr).asInstanceOf[CorrAggregator]
     if (agg._runs > _runs + 1)
-      (agg._value.getMap(feature), agg._sums(feature))
+      (agg._value(feature), agg._sums(feature))
     else
       (Double.NaN, Double.NaN)
   }

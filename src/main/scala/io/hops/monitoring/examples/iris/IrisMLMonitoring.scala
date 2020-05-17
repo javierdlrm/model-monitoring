@@ -74,7 +74,8 @@ object IrisMLMonitoring {
       Stddev(StddevType.SAMPLE),
       Distr(baseline.getDistributionsBounds),
       Cov(CovType.SAMPLE),
-      Corr(CorrType.SAMPLE)
+      Corr(CorrType.SAMPLE),
+      Perc(Seq(25,50,75), iqr = true)
     )
 
     // Define outlier detectors

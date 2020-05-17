@@ -60,6 +60,7 @@ object Constants {
       val Avg = "avg"
       val Mean = "mean"
       val Stddev = "stddev"
+      val Perc = "perc"
 
       // Collective
       val Cov = "cov"
@@ -74,10 +75,10 @@ object Constants {
 
       // Groups
       val Simple = Seq(Max, Min, Sum, Count, Pow2Sum, Distr) // one-pass
-      val Compound = Seq(Avg, Mean, Stddev) // uses simple
+      val Compound = Seq(Avg, Mean, Stddev, Perc) // uses simple
       val Multiple = Seq(Cov, Corr) // multiple vars
 
-      val All = Seq(Max, Min, Sum, Count, Pow2Sum, Avg, Mean, Stddev, Distr, Cov, Corr)
+      val All = Seq(Max, Min, Sum, Count, Pow2Sum, Distr, Avg, Mean, Stddev, Perc, Cov, Corr)
     }
 
   }

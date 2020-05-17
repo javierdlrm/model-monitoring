@@ -1,5 +1,6 @@
 package io.hops.monitoring.stats.aggregators
 
+import io.hops.monitoring.outliers.detectors.DescriptiveStatsDetector
 import io.hops.monitoring.stats.definitions.Distr
 import io.hops.monitoring.stats.definitions.Distr.BinningType
 import io.hops.monitoring.stats.{StatMap, StatValue}
@@ -28,12 +29,17 @@ case class DistrAggregator(distr: Distr, feature: String) extends StatSimpleAggr
     // ensure bounds
     if (_bounds isEmpty) initialize(stats)
 
-    // increment bin
-    val index = _bounds.lastIndexWhere(_ <= value.toString) // if value within bounds
-    if (index >= 0) {
-      val bound = _bounds(index)
-      _value(bound) = _value(bound) + 1.0
+    // filter out upper outliers
+    val binWidth = _bounds(1).toDouble - _bounds.head.toDouble
+    if (value < (_bounds.last.toDouble + binWidth)) {
+      // increment bin
+      val index = _bounds.lastIndexWhere(_.toDouble <= value) // if value within bounds
+      if (index >= 0) {
+        val bound = _bounds(index)
+        _value(bound) = _value(bound) + 1.0
+      }
     }
+
     this.value
   }
 

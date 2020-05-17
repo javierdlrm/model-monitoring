@@ -12,8 +12,9 @@ import scala.collection.mutable
 
 case class CovAggregator(cov: Cov, feature: String) extends StatMultipleAggregator {
 
-  private var _value: StatValue = StatMap() // default
-  def value: StatValue = _value
+  private var _value: mutable.HashMap[String, Double] = _
+
+  def value: StatValue = StatMap(_value)
 
   private var _residualsSums: mutable.HashMap[String, Double] = _
 
@@ -28,14 +29,12 @@ case class CovAggregator(cov: Cov, feature: String) extends StatMultipleAggregat
       _residualsSums = mutable.HashMap(values.keys.map(_ -> 0.0).toSeq: _*)
 
     // Compute cov
-    _value = StatMap(
-      cov(cov.type_, values, stats)
-    )
+    _value = cov(cov.type_, values, stats)
 
     // Increment runs
     _runs += 1
 
-    _value
+    this.value
   }
 
   private def cov(type_ : CovType.Value, pairs: HashMap[String, Double], stats: HashMap[String, HashMap[String, StatAggregator]]): mutable.HashMap[String, Double] = {
@@ -71,7 +70,7 @@ case class CovAggregator(cov: Cov, feature: String) extends StatMultipleAggregat
   private def checkCofeatureCov(partner: String, stats: HashMap[String, HashMap[String, StatAggregator]]): (Double, Double) = {
     val agg = stats(partner)(Descriptive.Cov).asInstanceOf[CovAggregator]
     if (agg._runs == _runs + 1) // next agg
-    (agg._value.getMap(feature), agg._residualsSums(feature))
+    (agg._value(feature), agg._residualsSums(feature))
     else
     (Double.NaN, Double.NaN)
   }

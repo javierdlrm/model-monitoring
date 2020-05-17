@@ -19,7 +19,7 @@ class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierD
     val outliers = stats.flatMap(stat => {
       val observed = values(stat)
       val reference = baseline(stat)
-      val isOutlier = checkOutlier(stat, observed, reference.getDouble, baseline)
+      val isOutlier = DescriptiveStatsDetector.isOutlier(stat, observed.getDouble, reference.getDouble, baseline)
 
       LoggerUtil.log.info(s"[DescriptiveStatsDetector] Outlier [$isOutlier], Stat [$stat], Observed [$observed], Reference [$reference]")
 
@@ -29,14 +29,16 @@ class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierD
 
     HashMap(outliers: _*)
   }
+}
 
-  private def checkOutlier(stat: String, observed: StatValue, reference: Double, baseline: HashMap[String, StatValue]): Boolean = {
+object DescriptiveStatsDetector {
+  def isOutlier(stat: String, observed: Double, reference: Double, baseline: HashMap[String, StatValue]): Boolean = {
     stat match {
-      case Descriptive.Max => observed.getDouble > reference
-      case Descriptive.Min => observed.getDouble < reference
-      case Descriptive.Mean => beyondStddevOutlier(observed.getDouble, reference, baseline(Descriptive.Stddev).getDouble)
-      case Descriptive.Avg => beyondStddevOutlier(observed.getDouble, reference, baseline(Descriptive.Stddev).getDouble)
-      case Descriptive.Stddev => observed.getDouble > reference * 2
+      case Descriptive.Max => observed > reference
+      case Descriptive.Min => observed < reference
+      case Descriptive.Mean => beyondStddevOutlier(observed, reference, baseline(Descriptive.Stddev).getDouble)
+      case Descriptive.Avg => beyondStddevOutlier(observed, reference, baseline(Descriptive.Stddev).getDouble)
+      case Descriptive.Stddev => observed > reference * 2
     }
   }
 

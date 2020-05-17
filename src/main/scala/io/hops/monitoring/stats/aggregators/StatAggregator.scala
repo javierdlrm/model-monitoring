@@ -23,20 +23,22 @@ object StatAggregator {
       case Descriptive.Stddev => StddevAggregator(stat.asInstanceOf[Stddev])
       case Descriptive.Cov => CovAggregator(stat.asInstanceOf[Cov], feature)
       case Descriptive.Corr => CorrAggregator(stat.asInstanceOf[Corr], feature)
+      case Descriptive.Perc => PercAggregator(stat.asInstanceOf[Perc])
     }
 
   def getStructField(stat: String): StructField =
-    stat match {
-      case Descriptive.Max => MaxAggregator.structField
-      case Descriptive.Min => MinAggregator.structField
-      case Descriptive.Count => CountAggregator.structField
-      case Descriptive.Sum => SumAggregator.structField
-      case Descriptive.Pow2Sum => Pow2SumAggregator.structField
-      case Descriptive.Distr => DistrAggregator.structField
-      case Descriptive.Avg => AvgAggregator.structField
-      case Descriptive.Mean => MeanAggregator.structField
-      case Descriptive.Stddev => StddevAggregator.structField
-      case Descriptive.Cov => CovAggregator.structField
-      case Descriptive.Corr => CorrAggregator.structField
-    }
+    (stat match {
+      case Descriptive.Max => MaxAggregator
+      case Descriptive.Min => MinAggregator
+      case Descriptive.Count => CountAggregator
+      case Descriptive.Sum => SumAggregator
+      case Descriptive.Pow2Sum => Pow2SumAggregator
+      case Descriptive.Distr => DistrAggregator
+      case Descriptive.Avg => AvgAggregator
+      case Descriptive.Mean => MeanAggregator
+      case Descriptive.Stddev => StddevAggregator
+      case Descriptive.Cov => CovAggregator
+      case Descriptive.Corr => CorrAggregator
+      case Descriptive.Perc => PercAggregator
+    }).structField
 }
