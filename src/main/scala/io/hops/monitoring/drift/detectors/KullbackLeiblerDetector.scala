@@ -34,9 +34,12 @@ object KullbackLeiblerDetector {
   def kullbackLeibler(p: Seq[Double], q: Seq[Double]): Double = {
     LoggerUtil.log.info(s"[KullbackLeiblerDetector] Detecting drift over: P [$p] and Q [$q]")
 
-    p.zip(q).foldLeft(0.0)((sum, values) => {
-      val (px, py) = values
-      sum + (px * math.log(px / py)) // sum(p(x) ln (p(x) / p(y))
-    })
+    val eps = 1e-11
+    p.zip(q)
+      .filter(v => math.abs(v._1) > eps && math.abs(v._2) > eps)
+      .foldLeft(0.0)((sum, values) => {
+        val (px, qx) = values
+        sum + (px * math.log(px / qx)) // sum(p(x) ln (p(x) / q(x))
+      })
   }
 }
