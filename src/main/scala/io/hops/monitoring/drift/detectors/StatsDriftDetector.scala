@@ -1,15 +1,13 @@
 package io.hops.monitoring.drift.detectors
 
-import io.hops.monitoring.drift.detectors.StatsDriftDetector.StatsDriftDetectorType
 import io.hops.monitoring.stats.StatValue
-import io.hops.monitoring.utils.Constants.Drift.{JensenShannon, KullbackLeibler, Wasserstein}
 import io.hops.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
 trait StatsDriftDetector extends java.io.Serializable {
-  def name: StatsDriftDetectorType.Value
+  def name: String
 
   def stats: Seq[String]
 
@@ -17,14 +15,6 @@ trait StatsDriftDetector extends java.io.Serializable {
 }
 
 object StatsDriftDetector {
-
-  object StatsDriftDetectorType extends Enumeration {
-    type Type = Value
-
-    val WASSERSTEIN: StatsDriftDetectorType.Value = Value(Wasserstein)
-    val KULLBACKLEIBLER: StatsDriftDetectorType.Value = Value(KullbackLeibler)
-    val JENSENSHANNON: StatsDriftDetectorType.Value = Value(JensenShannon)
-  }
 
   def getMatchedFrequencies(observed: mutable.HashMap[String, Double], baseline: mutable.HashMap[String, Double]): (Seq[Double], Seq[Double]) = {
 

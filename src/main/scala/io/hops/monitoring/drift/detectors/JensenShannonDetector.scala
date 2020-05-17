@@ -1,7 +1,7 @@
 package io.hops.monitoring.drift.detectors
 
-import io.hops.monitoring.drift.detectors.StatsDriftDetector.StatsDriftDetectorType
 import io.hops.monitoring.stats.StatValue
+import io.hops.monitoring.utils.Constants.Drift.JensenShannon
 import io.hops.monitoring.utils.Constants.Stats.Descriptive
 import io.hops.monitoring.utils.LoggerUtil
 
@@ -9,7 +9,7 @@ import scala.collection.immutable.HashMap
 
 class JensenShannonDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
-  override def name: StatsDriftDetectorType.Value = StatsDriftDetectorType.JENSENSHANNON
+  override def name: String = JensenShannon
 
   override def stats: Seq[String] = Seq(Descriptive.Distr)
 

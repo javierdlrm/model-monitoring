@@ -58,7 +58,7 @@ class StatsDriftPipe(source: DataFrame, stats: Seq[String], detectors: Seq[Stats
       val drift = detector.detect(values, featureStats)
 
       if (drift isDefined)
-        Some(Row(Seq(window, feature, detector.name.toString, drift get): _*))
+        Some(Row(Seq(window, feature, detector.name, drift get): _*))
       else
         None
     })
