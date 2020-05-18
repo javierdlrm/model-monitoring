@@ -51,7 +51,7 @@ Using statistics:
 
 Using instances:
 - **AEDetector** (not implemented yet): Detects changes in the instances using a pre-trained variational autoencoder.
-- **LinearRegressionDetector** (not implemented yet): Detects changes in the instances using a pre-trained linear regression model.
+- **MahalanobisDetector** (not implemented yet): Detects changes in the instances comparing the mahalanobis distance with a given threshold.
 
 > *NOTE*: Pre-trained models can be specified as a parameter, by name in case of being trained in hopsworks, or by path to the corresponding storage.
 
@@ -71,7 +71,7 @@ Using statistics:
 
 Using features:
 
-- Nothing yet
+- Pending
 
 ## Extensibility
 
