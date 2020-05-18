@@ -75,43 +75,34 @@ object IrisMLMonitoring {
       Distr(baseline.getDistributionsBounds),
       Cov(CovType.SAMPLE),
       Corr(CorrType.SAMPLE),
-      Perc(Seq(25,50,75), iqr = true)
-    )
-
-    // Define outlier detectors
-    val outlierDetectors = Seq(
-      new DescriptiveStatsDetector(Seq(Descriptive.Min, Descriptive.Max, Descriptive.Avg, Descriptive.Stddev))
-    )
-
-    // Define drift detectors
-    val driftDetectors = Seq(
-      new WassersteinDetector(threshold = 2.7, showAll = true),
-      new KullbackLeiblerDetector(threshold = 1.3, showAll = true),
-      new JensenShannonDetector(threshold = 0.5, showAll = true)
-    )
+      Perc(Seq(25,50,75), iqr = true))
 
     // Monitor
     val mdf = instancesDF.monitor
       .withSchema("instance", kfkInstanceStructSchema) // parse request(Array(Double)) to request(Schema)
 
-    // Windowed stats
+    // Window pipe
     val wdf = mdf
       .window(timeColumnName, WindowSetting(windowDuration, slideDuration, watermarkDelay))
 
+    // Stats pipe
     val sdf = wdf.stats(cols, stats)
-
-    // Stats
     val statsPipeline = sdf
       .output("StatsPipeline")
       .parquet(s"$kfkTopic-stats", ResourcesDir)
 
-    // Outliers
+    // Outlier pipe (from statistics)
+    val outlierDetectors = Seq(new DescriptiveStatsDetector(Seq(Descriptive.Min, Descriptive.Max, Descriptive.Avg, Descriptive.Stddev)))
     val outliersPipeline = sdf
       .outliers(outlierDetectors, baseline)
       .output("OutliersPipeline")
       .parquet(s"$kfkTopic-outliers", ResourcesDir)
 
-    // Drift
+    // Drift pipe (from statistics)
+    val driftDetectors = Seq( // define drift detectors
+      new WassersteinDetector(threshold = 2.7, showAll = true),
+      new KullbackLeiblerDetector(threshold = 1.3, showAll = true),
+      new JensenShannonDetector(threshold = 0.5, showAll = true))
     val driftPipeline = sdf
       .drift(driftDetectors, baseline)
       .output("DriftPipeline")
@@ -121,8 +112,6 @@ object IrisMLMonitoring {
     PipelineManager
       .init(spark)
       .awaitAll(Seq(statsPipeline, outliersPipeline, driftPipeline), timeout)
-//          .awaitAll(Seq(statsPipeline, outliersPipeline), timeout)
-//          .awaitAll(Seq(statsPipeline), timeout)
 
     // Close session
     LoggerUtil.log.info("[IrisMLMonitoring] Shutting down spark job...")
