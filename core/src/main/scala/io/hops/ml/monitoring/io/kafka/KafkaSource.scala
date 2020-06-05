@@ -12,7 +12,7 @@ object KafkaSource {
       assert(sp.spark isDefined, "Spark session is required")
 
       // create reader
-      val reader = sp.spark.get.readStream.format(Kafka.Format)
+      val reader = sp.spark.get.readStream.format(Kafka.Kafka)
       settings.options foreach { op => reader.option(op._1, op._2) }
 
       // add df

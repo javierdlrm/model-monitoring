@@ -115,11 +115,15 @@ object Constants {
   // Kafka
 
   object Kafka {
-    val Format = "format"
+    val Kafka = "kafka"
 
-    val Bootstrap_Servers = "kafka.bootstrap.servers"
+    val BootstrapServers = "kafka.bootstrap.servers"
+    val Topic = "topic"
     val Subscribe = "subscribe"
     val StartingOffsets = "startingOffsets"
+    val EndingOffsets = "endingOffsets"
+    val KeyDeserializer = "kafka.key.deserializer"
+    val ValueDeserializer = "kafka.value.deserializer"
     val SecurityProtocol = "kafka.security.protocol"
     val SSLTruststoreLocation = "kafka.ssl.truststore.location"
     val SSLTruststorePassword = "kafka.ssl.truststore.password"

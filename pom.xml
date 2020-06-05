@@ -10,6 +10,7 @@
   <modules>
     <module>core</module>
     <module>examples</module>
+      <module>job</module>
   </modules>
 
   <licenses>
@@ -39,7 +40,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
-      <artifactId>spark-streaming-kafka-0-10_${scala.base}</artifactId>
+      <artifactId>spark-sql-kafka-0-10_${scala.base}</artifactId>
       <version>${spark.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -53,12 +54,6 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.base}</artifactId>
       <version>${spark.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-client</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>provided</scope>
     </dependency>
     <dependency>

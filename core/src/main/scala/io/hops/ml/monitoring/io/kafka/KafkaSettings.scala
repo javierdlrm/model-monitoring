@@ -23,7 +23,7 @@ object KafkaSettings {
 
     val options: mutable.Map[String, String] = mutable.Map[String, String]()
 
-    bootstrapServers ! (options += Bootstrap_Servers -> _)
+    bootstrapServers ! (options += BootstrapServers -> _)
     subscribe ! (options += Subscribe -> _)
     startingOffsets ! (options += StartingOffsets -> _)
     securityProtocol ! (options += SecurityProtocol -> _)

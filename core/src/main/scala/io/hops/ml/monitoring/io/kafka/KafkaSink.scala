@@ -10,7 +10,7 @@ object KafkaSink {
   implicit class ExtendedPipeline(val pipeline: Pipeline) extends AnyVal {
 
     def kafka(settings: KafkaSettings): Pipeline = {
-      val sink = new SinkPipe(Kafka.Format, settings.options)
+      val sink = new SinkPipe(Kafka.Kafka, settings.options)
       pipeline.addSink(sink)
     }
   }

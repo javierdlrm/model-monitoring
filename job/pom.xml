@@ -3,17 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.hops.ml.monitoring</groupId>
         <artifactId>parent</artifactId>
+        <groupId>io.hops.ml.monitoring</groupId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>examples</artifactId>
-    <packaging>jar</packaging>
-
-    <name>ML Monitoring Examples</name>
-    <description>Examples of the model monitoring framework</description>
+    <artifactId>job</artifactId>
+    <name>ML Monitoring Job</name>
+    <description>Spark job for model monitoring with the model-monitoring framework</description>
     <inceptionYear>2008</inceptionYear>
 
     <licenses>
@@ -25,79 +22,52 @@
     </licenses>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.resources.version>3.1.0</maven.resources.version>
+        <dockerfile-maven-version>1.4.13</dockerfile-maven-version>
+        <docker-image-name>javierdlrm/model-monitoring-job</docker-image-name>
+        <docker-image-tag>v1beta1</docker-image-tag>
+        <docker-image-model-monitoring-job-dir>/opt/spark/model-monitoring-job/</docker-image-model-monitoring-job-dir>
+        <commons.math.version>3.4.1</commons.math.version>
+        <log4j.version>1.2.17</log4j.version>
+        <circe.version>0.11.2</circe.version>
     </properties>
 
     <dependencies>
-        <!-- Monitoring Core -->
+        <!-- Core -->
         <dependency>
             <groupId>io.hops.ml.monitoring</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Spark : Override with hadoop-client exclusion -->
+        <!-- Logs -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Kafka -->
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.base}</artifactId>
+            <artifactId>spark-sql-kafka-0-10_${scala.base}</artifactId>
             <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-client</artifactId>
-                </exclusion>
-            </exclusions>
-            <scope>provided</scope>
+            <!-- Not provided by Spark installation -->
         </dependency>
 
-        <!-- Hops -->
+        <!-- JSON -->
         <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hops-util</artifactId>
-            <version>${hops.utils.version}</version>
-            <scope>provided</scope>
+            <groupId>io.circe</groupId>
+            <artifactId>circe-core_${scala.base}</artifactId>
+            <version>${circe.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.hops</groupId>
-            <artifactId>hadoop-client</artifactId>
-            <version>${hops.version}</version>
-            <scope>provided</scope>
+            <groupId>io.circe</groupId>
+            <artifactId>circe-parser_${scala.base}</artifactId>
+            <version>${circe.version}</version>
         </dependency>
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>sics-release</id>
-            <name>SICS Release Repository</name>
-            <url>http://kompics.sics.se/maven/repository</url>
-            <releases>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>sics-snapshot</id>
-            <name>SICS Snapshot Repository</name>
-            <url>http://kompics.sics.se/maven/snapshotrepository</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>Hops</id>
-            <name>Hops Repo</name>
-            <url>https://bbc1.sics.se/archiva/repository/Hops/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
@@ -178,6 +148,28 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile-maven-version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repository>${docker-image-name}</repository>
+                    <tag>${docker-image-tag}</tag>
+                    <buildArgs>
+                        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+                        <MODEL_MONITORING_JOB_DIR>${docker-image-model-monitoring-job-dir}</MODEL_MONITORING_JOB_DIR>
+                    </buildArgs>
                 </configuration>
             </plugin>
         </plugins>
