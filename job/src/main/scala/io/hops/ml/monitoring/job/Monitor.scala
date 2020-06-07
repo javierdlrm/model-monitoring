@@ -15,7 +15,7 @@ object Monitor {
 
     // Prepare schemas
     val schema = DataFrameUtil.Schemas.structType[InferenceLoggerSchema]()
-    val requestSchema = DataFrameUtil.Schemas.structType(config.inferenceSchemas.request)
+    val requestSchema = DataFrameUtil.Schemas.structType(config.modelInfo.schemas.request)
 
     // Load streaming df
     val logsDF = StreamingDataFrame.read(spark, config)
@@ -30,7 +30,7 @@ object Monitor {
       .select(col("timestamp"), col("instance.*"))
 
     // Write requests to kafka
-    val sq = StreamingDataFrame.write(requestsDF, config)
+    val sq = StreamingDataFrame.write(requestsDF, config.jobConfig.sink.head)
     sq.awaitTermination(config.jobConfig.timeout)
 
     spark.stop()
@@ -44,5 +44,3 @@ object Monitor {
       .getOrCreate()
   }
 }
-
-
