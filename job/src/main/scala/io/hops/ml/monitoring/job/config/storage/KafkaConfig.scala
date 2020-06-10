@@ -1,4 +1,4 @@
-package io.hops.ml.monitoring.job.config
+package io.hops.ml.monitoring.job.config.storage
 
 import io.circe.Decoder
 

@@ -7,7 +7,7 @@ import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class JensenShannonDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
+case class JensenShannonDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
   override def name: String = JensenShannon
 

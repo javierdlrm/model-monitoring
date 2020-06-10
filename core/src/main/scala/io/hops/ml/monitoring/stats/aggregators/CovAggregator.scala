@@ -31,7 +31,7 @@ case class CovAggregator(cov: Cov, feature: String) extends StatMultipleAggregat
       _residualsSums = mutable.HashMap(values.keys.map(_ -> 0.0).toSeq: _*)
 
     // Compute cov
-    _value = cov(cov.type_, values, stats)
+    _value = cov(cov.`type`, values, stats)
 
     // Increment runs
     _runs += 1

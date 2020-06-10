@@ -1,14 +1,13 @@
 package io.hops.ml.monitoring.outliers.detectors
 
 import io.hops.ml.monitoring.stats.StatValue
-import io.hops.ml.monitoring.stats.StatValue
 import io.hops.ml.monitoring.utils.Constants.Outliers.DescriptiveStats
 import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
 import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierDetector(statNames) {
+case class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierDetector(statNames) {
 
   override def name: String = DescriptiveStats
 

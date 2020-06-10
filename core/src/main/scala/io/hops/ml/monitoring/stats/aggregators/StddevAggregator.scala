@@ -23,7 +23,7 @@ case class StddevAggregator(stddev: Stddev) extends StatCompoundAggregator {
 
     _value = StatDouble(
       round(
-        stddev(stddev.type_, pow2sum, count, avg)
+        stddev(stddev.`type`, pow2sum, count, avg)
       ))
     _value
   }

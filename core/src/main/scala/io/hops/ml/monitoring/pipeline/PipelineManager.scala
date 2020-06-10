@@ -29,9 +29,9 @@ object PipelineManager extends java.io.Serializable {
 
   // Streams
 
-  def awaitAll(streamWriters: Seq[Pipeline], timeoutMs: Duration): Unit = {
+  def awaitAll(pipelines: Seq[Pipeline], timeoutMs: Duration): Unit = {
     this.timeoutMs = Some(timeoutMs)
-    awaitAll(streamWriters)
+    awaitAll(pipelines)
   }
 
   def awaitAll(pipelines: Seq[Pipeline]): Unit = {

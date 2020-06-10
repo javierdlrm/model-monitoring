@@ -7,7 +7,7 @@ import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class KullbackLeiblerDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
+case class KullbackLeiblerDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
   override def name: String = KullbackLeibler
 

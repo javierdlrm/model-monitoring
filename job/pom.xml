@@ -29,7 +29,7 @@
         <docker-image-model-monitoring-job-dir>/opt/spark/model-monitoring-job/</docker-image-model-monitoring-job-dir>
         <commons.math.version>3.4.1</commons.math.version>
         <log4j.version>1.2.17</log4j.version>
-        <circe.version>0.11.2</circe.version>
+        <circe.version>0.12.0-M3</circe.version>
     </properties>
 
     <dependencies>
@@ -65,6 +65,16 @@
         <dependency>
             <groupId>io.circe</groupId>
             <artifactId>circe-parser_${scala.base}</artifactId>
+            <version>${circe.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.circe</groupId>
+            <artifactId>circe-generic_${scala.base}</artifactId>
+            <version>${circe.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.circe</groupId>
+            <artifactId>circe-generic-extras_${scala.base}</artifactId>
             <version>${circe.version}</version>
         </dependency>
     </dependencies>

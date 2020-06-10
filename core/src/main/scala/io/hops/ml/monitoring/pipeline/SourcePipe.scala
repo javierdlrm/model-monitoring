@@ -15,9 +15,9 @@ class SourcePipe(val spark: Option[SparkSession] = None, df: Option[DataFrame] =
     this
   }
 
-  private def _reduceDFs: DataFrame = {
+  private def _reduceDfs: DataFrame = {
     dfs.reduce(_.union(_))
   }
 
-  def monitor: MonitorPipe = new MonitorPipe(_reduceDFs)
+  def monitor: MonitorPipe = new MonitorPipe(_reduceDfs)
 }

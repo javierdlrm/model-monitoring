@@ -31,7 +31,7 @@ case class CorrAggregator(corr: Corr, feature: String) extends StatMultipleAggre
       _sums = mutable.HashMap(values.keys.map(_ -> 0.0).toSeq: _*)
 
     // Compute corr
-    _value = corr(corr.type_, values, stats)
+    _value = corr(corr.`type`, values, stats)
 
     // Increment runs
     _runs += 1

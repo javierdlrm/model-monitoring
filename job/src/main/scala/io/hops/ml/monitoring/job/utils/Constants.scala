@@ -6,6 +6,7 @@ object Constants {
     val ModelInfo = "MODEL_INFO"
     val InferenceSchemas = "INFERENCE_SCHEMAS"
     val MonitoringConfig = "MONITORING_CONFIG"
+    val StorageConfig = "STORAGE_CONFIG"
     val JobConfig = "JOB_CONFIG"
   }
 
@@ -29,4 +30,12 @@ object Constants {
     val Brokers = "brokers"
   }
 
+  object Baseline {
+    val Descriptive = "descriptive"
+    val Distributions = "distributions"
+  }
+
+  object Outliers {
+    val Descriptive = "descriptive"
+  }
 }

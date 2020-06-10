@@ -1,15 +1,13 @@
 package io.hops.ml.monitoring.drift.detectors
 
 import io.hops.ml.monitoring.stats.StatValue
-import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
-import io.hops.ml.monitoring.stats.StatValue
 import io.hops.ml.monitoring.utils.Constants.Drift.Wasserstein
 import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
 import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
+case class WassersteinDetector(threshold: Double, showAll: Boolean = false) extends StatsDriftDetector {
 
   override def name: String = Wasserstein
 

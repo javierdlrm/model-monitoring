@@ -2,7 +2,7 @@ package io.hops.ml.monitoring.job.config
 
 import io.hops.ml.monitoring.job.utils.Constants
 
-case class Config(modelInfo: ModelInfo, monitoringConfig: MonitoringConfig, jobConfig: JobConfig)
+case class Config(modelInfo: ModelInfo, monitoringConfig: MonitoringConfig, storageConfig: StorageConfig, jobConfig: Option[JobConfig])
 
 object Config {
 
@@ -20,12 +20,15 @@ object Config {
       throw new Exception(s"${Constants.EnvVars.MonitoringConfig} env var is required")
     } else monitoringConfigOpt.get
 
-    // Job config
-    val jobConfigOpt = JobConfig.getFromEnv
-    val jobConfig = if (jobConfigOpt isEmpty) {
-      throw new Exception(s"${Constants.EnvVars.JobConfig} env var is required")
-    } else jobConfigOpt.get
+    // Storage config
+    val storageConfigOpt = StorageConfig.getFromEnv
+    val storageConfig = if (storageConfigOpt isEmpty) {
+      throw new Exception(s"${Constants.EnvVars.StorageConfig} env var is required")
+    } else storageConfigOpt.get
 
-    Config(modelInfo, monitoringConfig, jobConfig)
+    // Job config
+    val jobConfig = JobConfig.getFromEnv
+
+    Config(modelInfo, monitoringConfig, storageConfig, jobConfig)
   }
 }

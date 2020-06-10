@@ -98,8 +98,8 @@ object Constants {
     val DriftColName = "drift"
 
     val Wasserstein = "wasserstein"
-    val KullbackLeibler = "kullback-leibler"
-    val JensenShannon = "jensen-shannon"
+    val KullbackLeibler = "kullbackLeibler"
+    val JensenShannon = "jensenShannon"
   }
 
   // File
@@ -131,6 +131,8 @@ object Constants {
     val SSLKeystorePassword = "kafka.ssl.keystore.location"
     val SSLKeyPassword = "kafka.ssl.key.password"
     val SSLEndpointIdentificationAlgorithm = "kafka.ssl.endpoint.identification.algorithm"
+
+    val Value = "value"
   }
 
 }

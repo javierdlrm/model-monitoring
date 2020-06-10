@@ -9,8 +9,9 @@ case class KafkaSettings(options: immutable.Map[String, String])
 
 object KafkaSettings {
 
-  def apply(bootstrapServers: Option[String] = None,
+  def apply(bootstrapServers: String,
             subscribe: Option[String] = None,
+            topic: Option[String] = None,
             startingOffsets: Option[String] = None,
             securityProtocol: Option[String] = None,
             sslTruststoreLocation: Option[String] = None,
@@ -23,8 +24,9 @@ object KafkaSettings {
 
     val options: mutable.Map[String, String] = mutable.Map[String, String]()
 
-    bootstrapServers ! (options += BootstrapServers -> _)
+    options += BootstrapServers -> bootstrapServers
     subscribe ! (options += Subscribe -> _)
+    topic ! (options += Topic -> _)
     startingOffsets ! (options += StartingOffsets -> _)
     securityProtocol ! (options += SecurityProtocol -> _)
     sslTruststoreLocation ! (options += SSLTruststoreLocation -> _)

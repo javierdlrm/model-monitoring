@@ -1,7 +1,5 @@
 package io.hops.ml.monitoring.examples.iris
 
-import io.hops.ml.monitoring.pipeline.PipelineManager
-import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
 import io.hops.ml.monitoring.drift.detectors.{JensenShannonDetector, KullbackLeiblerDetector, WassersteinDetector}
 import io.hops.ml.monitoring.io.dataframe.DataFrameSource._
 import io.hops.ml.monitoring.io.file.FileSink._
@@ -101,10 +99,10 @@ object IrisMLMonitoring {
       .parquet(s"$kfkTopic-outliers", ResourcesDir)
 
     // Drift pipe (from statistics)
-    val driftDetectors = Seq( // define drift detectors
-      new WassersteinDetector(threshold = 2.7, showAll = true),
-      new KullbackLeiblerDetector(threshold = 1.3, showAll = true),
-      new JensenShannonDetector(threshold = 0.5, showAll = true))
+    val driftDetectors = Seq(
+      WassersteinDetector(threshold = 2.7, showAll = true),
+      KullbackLeiblerDetector(threshold = 1.3, showAll = true),
+      JensenShannonDetector(threshold = 0.5, showAll = true))
     val driftPipeline = sdf
       .drift(driftDetectors, baseline)
       .output("DriftPipeline")
