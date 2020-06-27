@@ -1,12 +1,14 @@
 package io.hops.ml.monitoring.monitor
 
+import io.hops.ml.monitoring.drift.DriftPipeJoint
+import io.hops.ml.monitoring.outliers.OutliersPipeJoint
 import io.hops.ml.monitoring.utils.DataFrameUtil.explodeColumn
 import io.hops.ml.monitoring.utils.LoggerUtil
 import io.hops.ml.monitoring.window.WindowPipeJoint
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
-class MonitorPipe(source: DataFrame) extends WindowPipeJoint {
+class MonitorPipe(source: DataFrame) extends WindowPipeJoint with OutliersPipeJoint with DriftPipeJoint {
 
   LoggerUtil.log.info(s"[MonitorPipe] Created over dataframe with schema ${source.schema.json}")
 

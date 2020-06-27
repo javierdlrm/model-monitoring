@@ -37,6 +37,7 @@ object Constants {
     val TypeColName = "type"
 
     val ValueColName = "value"
+    val ThresholdColName = "threshold"
 
     val NumericalColName = "numerical"
     val CategoricalColName = "categorical"
@@ -62,7 +63,7 @@ object Constants {
       val Stddev = "stddev"
       val Perc = "perc"
 
-      // Collective
+      // Multiple
       val Cov = "cov"
       val Corr = "corr"
 

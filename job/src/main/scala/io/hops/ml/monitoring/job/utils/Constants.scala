@@ -4,7 +4,6 @@ object Constants {
 
   object EnvVars {
     val ModelInfo = "MODEL_INFO"
-    val InferenceSchemas = "INFERENCE_SCHEMAS"
     val MonitoringConfig = "MONITORING_CONFIG"
     val StorageConfig = "STORAGE_CONFIG"
     val JobConfig = "JOB_CONFIG"

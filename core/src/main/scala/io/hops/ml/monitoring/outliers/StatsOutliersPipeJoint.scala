@@ -1,6 +1,6 @@
 package io.hops.ml.monitoring.outliers
 
-import io.hops.ml.monitoring.outliers.detectors.StatsOutlierDetector
+import io.hops.ml.monitoring.outliers.detectors.StatsOutliersDetector
 import io.hops.ml.monitoring.stats.Baseline
 import io.hops.ml.monitoring.stats.definitions.StatDefinition
 import io.hops.ml.monitoring.utils.LoggerUtil
@@ -12,9 +12,9 @@ trait StatsOutliersPipeJoint extends java.io.Serializable {
 
   def stats: Seq[StatDefinition]
 
-  def outliers(detectors: Seq[StatsOutlierDetector], baseline: Baseline): StatsOutliersPipe = {
+  def outliers(detectors: Seq[StatsOutliersDetector], baseline: Baseline): StatsOutliersPipe = {
 
-    val requiredStats: Seq[String] = detectors.flatMap(_.stats).distinct
+    val requiredStats: Seq[String] = detectors.flatMap(_.statNames).distinct
 
     // Check available stats
     val common = requiredStats.intersect(stats.map(_.name))
@@ -25,8 +25,8 @@ trait StatsOutliersPipeJoint extends java.io.Serializable {
 
       // filter out detectors using absent stats
       detectors.flatMap(d => {
-        d.stats = d.stats.filterNot(absent.contains)
-        if (d.stats nonEmpty) Some(d)
+        d.statNames = d.statNames.filterNot(absent.contains)
+        if (d.statNames nonEmpty) Some(d)
         else None
       })
     }

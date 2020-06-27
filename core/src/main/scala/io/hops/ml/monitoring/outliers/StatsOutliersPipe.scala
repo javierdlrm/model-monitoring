@@ -1,6 +1,6 @@
 package io.hops.ml.monitoring.outliers
 
-import io.hops.ml.monitoring.outliers.detectors.StatsOutlierDetector
+import io.hops.ml.monitoring.outliers.detectors.StatsOutliersDetector
 import io.hops.ml.monitoring.pipeline.SinkPipeJoint
 import io.hops.ml.monitoring.stats.definitions.StatDefinition
 import io.hops.ml.monitoring.stats.{Baseline, StatValue}
@@ -17,14 +17,14 @@ import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.immutable.HashMap
 
-class StatsOutliersPipe(source: DataFrame, detectors: Seq[StatsOutlierDetector], baseline: Baseline)
+class StatsOutliersPipe(source: DataFrame, detectors: Seq[StatsOutliersDetector], baseline: Baseline)
   extends SinkPipeJoint {
 
   LoggerUtil.log.info(s"[StatsOutliersPipe] Created with detectors [${detectors.map(_.name).mkString(", ")}]")
 
   // Variables
 
-  private val stats = detectors.flatMap(_.stats).distinct
+  private val stats = detectors.flatMap(_.statNames).distinct
   private val selectSchemaCols = WindowColName +: FeatureColName +: TypeColName +: stats
   private val schemaColsIndexedMap = selectSchemaCols.zipWithIndex.toMap
 

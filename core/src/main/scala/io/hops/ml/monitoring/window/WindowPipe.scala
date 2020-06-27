@@ -2,6 +2,7 @@ package io.hops.ml.monitoring.window
 
 import java.sql.Timestamp
 
+import io.hops.ml.monitoring.drift.WindowDriftPipeJoint
 import io.hops.ml.monitoring.outliers.WindowOutliersPipeJoint
 import io.hops.ml.monitoring.stats.StatsPipeJoint
 import io.hops.ml.monitoring.utils.Constants.Window._
@@ -11,7 +12,7 @@ import org.apache.spark.sql.functions.{col, window}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 
-class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint with WindowOutliersPipeJoint {
+class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint with WindowOutliersPipeJoint with WindowDriftPipeJoint {
 
   LoggerUtil.log.info(s"[WindowPipe] Created over column $timestampCol with duration ${setting.duration}, slide ${setting.slideDuration} and watermark ${setting.watermarkDelay}")
 
