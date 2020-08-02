@@ -32,7 +32,6 @@ case class KullbackLeiblerDetector(threshold: Double, showAll: Boolean = false) 
 
 object KullbackLeiblerDetector {
   def kullbackLeibler(p: Seq[Double], q: Seq[Double]): Double = {
-    LoggerUtil.log.info(s"[KullbackLeiblerDetector] Detecting drift over: P [$p] and Q [$q]")
 
     val eps = 1e-11
     p.zip(q)

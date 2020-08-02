@@ -9,6 +9,7 @@ import io.hops.ml.monitoring.job.config.Config
 import io.hops.ml.monitoring.job.config.monitoring.{BaselineConfig, DriftConfig, OutliersConfig}
 import io.hops.ml.monitoring.job.config.storage.SinkConfig
 import io.hops.ml.monitoring.job.utils.Constants.{Job, Schemas}
+import io.hops.ml.monitoring.monitor.MonitorPipe
 import io.hops.ml.monitoring.pipeline.{Pipeline, PipelineManager}
 import io.hops.ml.monitoring.stats.StatsPipe
 import io.hops.ml.monitoring.stats.definitions.StatDefinition
@@ -39,6 +40,7 @@ object Monitor {
     val messageSchema = DataFrameUtil.Schemas.structType[InferenceLoggerMessage]()
     val requestSchema = DataFrameUtil.Schemas.structType(config.modelInfo.schemas.request)
     val instanceSchema = DataFrameUtil.Schemas.structType(config.modelInfo.schemas.instance)
+    val cols = instanceSchema.map(_.name) // all feature names
 
     // Load streaming df
     val logsDF = readDF(spark, inference)
@@ -48,27 +50,26 @@ object Monitor {
     val timeColumnName = "timestamp"
     val requestCondition = col(s"logs.${Schemas.TypeColName}") === Schemas.Request
     val requestsDF = logsDF.filter(requestCondition)
-      .select(col(s"logs.${Schemas.TimeColName}") as timeColumnName, from_json(col(s"logs.${Schemas.PayloadColName}"), requestSchema) as 'requests) // add timestamp and parse json payload
-      .select(col(timeColumnName).cast("timestamp"), col("requests.instances") as 'instances) // extract requests
+      .select(col(s"logs.${Schemas.TimeColName}").cast("timestamp") as timeColumnName, from_json(col(s"logs.${Schemas.PayloadColName}"), requestSchema) as 'requests) // add timestamp and parse json payload
+      .select(col(timeColumnName), col("requests.instances") as 'instances) // extract requests
       .withColumn("instance", explode(col("instances"))).drop("instances") // explode instances
 
     // Initialize monitor
-    val mdf = requestsDF.monitor.withSchema("instance", instanceSchema)
+    val monitorPipe = requestsDF.monitor.withSchema("instance", instanceSchema)
 
     // Window pipe
-    val windowPipe = mdf.window(timeColumnName, WindowSetting(
+    val windowPipe = monitorPipe.window(timeColumnName, WindowSetting(
       Milliseconds(trigger.window.duration),
       Milliseconds(trigger.window.slide),
       Milliseconds(trigger.window.watermarkDelay)))
 
+    // Outlier pipe (distance-based)
+    val outliersPipeline = buildOutliersPipeline(monitorPipe, cols, outliers, analysis.outliers, baseline)
+
     // Stats pipe
-    val cols = instanceSchema.map(_.name) // all features
     val (statsPipe, statsPipeline) = buildStatsPipeline(windowPipe, cols, stats, analysis.stats)
 
-    // Outlier pipe (from statistics)
-    val outliersPipeline = buildOutliersPipeline(statsPipe, outliers, analysis.outliers, baseline)
-
-    // Drift pipe (from statistics)
+    // Drift pipe (distribution-based)
     val driftPipeline = buildDriftPipeline(statsPipe, drift, analysis.drift, baseline)
 
     // All pipelines
@@ -115,8 +116,8 @@ object Monitor {
     (statsPipe, statsPipeline)
   }
 
-  def buildOutliersPipeline(stats: StatsPipe, outliers: Option[OutliersConfig], sink: Option[SinkConfig], baseline: Option[BaselineConfig]): Option[Pipeline] = {
-    if (outliers.isEmpty || outliers.get.statsBased.isEmpty) return None
+  def buildOutliersPipeline(stats: MonitorPipe, cols: Seq[String], outliers: Option[OutliersConfig], sink: Option[SinkConfig], baseline: Option[BaselineConfig]): Option[Pipeline] = {
+    if (outliers.isEmpty || outliers.get.valuesBased.isEmpty) return None
     if (baseline isEmpty) {
       LoggerUtil.log.info("[Monitor] Ignoring outliers detection. Baseline is required")
       return None
@@ -127,7 +128,7 @@ object Monitor {
     }
 
     Some(stats
-      .outliers(outliers.get.statsBased, baseline.get.map)
+      .outliers(cols, outliers.get.valuesBased, baseline.get.map)
       .output("OutliersPipeline")
       .kafka(KafkaSettings(
         bootstrapServers = sink.get.kafka.brokers,

@@ -23,13 +23,7 @@ object StatsUtil {
   }
 
   def round(value: Double, decimals: Int = 2, rounding: BigDecimal.RoundingMode.Value = BigDecimal.RoundingMode.HALF_UP): Double = {
-    if (value.isNaN || value.isInfinite)
-      value
-    else {
-      if (rounding == BigDecimal.RoundingMode.HALF_DOWN) LoggerUtil.log.info(s"[StatsUtil] value: $value...")
-      val c = BigDecimal(value).setScale(decimals, rounding).toDouble
-      if (rounding == BigDecimal.RoundingMode.HALF_DOWN) LoggerUtil.log.info(s"[StatsUtil] value: $value...  result: $c")
-      c
-    }
+    if (value.isNaN || value.isInfinite) value
+    else BigDecimal(value).setScale(decimals, rounding).toDouble
   }
 }

@@ -6,7 +6,6 @@ import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
 trait StatDefinition {
   val name: String
   val require: Seq[String] = Seq()
-  val flags: Map[String, Any] = Map()
 }
 
 object StatDefinition {

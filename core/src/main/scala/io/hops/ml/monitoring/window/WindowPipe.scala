@@ -2,8 +2,10 @@ package io.hops.ml.monitoring.window
 
 import java.sql.Timestamp
 
+import io.hops.ml.monitoring.drift.WindowDriftPipeJoint
 import io.hops.ml.monitoring.outliers.WindowOutliersPipeJoint
 import io.hops.ml.monitoring.stats.StatsPipeJoint
+import io.hops.ml.monitoring.utils.Constants.Vars.TimestampColName
 import io.hops.ml.monitoring.utils.Constants.Window._
 import io.hops.ml.monitoring.utils.DataFrameUtil.Encoders
 import io.hops.ml.monitoring.utils.{LoggerUtil, WindowUtil}
@@ -11,18 +13,18 @@ import org.apache.spark.sql.functions.{col, window}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, Row}
 
-class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint with WindowOutliersPipeJoint {
+class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSetting) extends StatsPipeJoint with WindowOutliersPipeJoint with WindowDriftPipeJoint {
 
   LoggerUtil.log.info(s"[WindowPipe] Created over column $timestampCol with duration ${setting.duration}, slide ${setting.slideDuration} and watermark ${setting.watermarkDelay}")
 
   // Window
 
   private def selectCols(cols: Seq[String]): DataFrame =
-    source.select(col(timestampCol) +: cols.map(colName => col(colName)): _*)
+    source.select(col(timestampCol) +: cols.map(colName => col(colName)): _*).withColumnRenamed(timestampCol, TimestampColName)
 
   private def applyWindow(df: DataFrame): DataFrame = {
-    val windowCol = window(col(timestampCol), WindowUtil.durationToString(setting.duration), WindowUtil.durationToString(setting.slideDuration))
-    df.withWatermark(timestampCol, WindowUtil.durationToString(setting.watermarkDelay))
+    val windowCol = window(col(TimestampColName), WindowUtil.durationToString(setting.duration), WindowUtil.durationToString(setting.slideDuration))
+    df.withWatermark(TimestampColName, WindowUtil.durationToString(setting.watermarkDelay))
       .withColumn(WindowColName, windowCol)
   }
 

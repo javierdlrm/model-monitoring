@@ -43,12 +43,8 @@ final case class StatMap(get: mutable.HashMap[String, Double] = mutable.HashMap.
 
 object StatMap {
   def from(value: Any): StatMap = value match {
-    case mutableMap: mutable.HashMap[String, Double] =>
-      LoggerUtil.log.info(s"[StatValue] from: mutable.HashMap")
-      StatMap(mutableMap)
-    case immutableMap: HashMap[String, Double] =>
-      LoggerUtil.log.info(s"[StatValue] from: immutable.HashMap")
-      StatMap(mutable.HashMap[String, Double](immutableMap.toSeq: _*))
+    case mutableMap: mutable.HashMap[String, Double] => StatMap(mutableMap)
+    case immutableMap: HashMap[String, Double] => StatMap(mutable.HashMap[String, Double](immutableMap.toSeq: _*))
   }
 }
 

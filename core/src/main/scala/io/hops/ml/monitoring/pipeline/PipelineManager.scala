@@ -79,8 +79,10 @@ object PipelineManager extends java.io.Serializable {
     override def onQueryStarted(event: StreamingQueryListener.QueryStartedEvent): Unit =
       LoggerUtil.log.info(s"[PipelineManager](Listener) Pipeline started with id ${event.id}, runId ${event.runId} and name ${event.name}")
 
-    override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit =
-      LoggerUtil.log.info(s"[PipelineManager](Listener) Pipeline progressing: id ${event.progress.id}, runId ${event.progress.runId}")
+    override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit = {
+      // Do nothing
+      // LoggerUtil.log.info(s"[PipelineManager](Listener) Pipeline progressing: id ${event.progress.id}, runId ${event.progress.runId}")
+    }
 
     override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
       LoggerUtil.log.info(s"[PipelineManager](Listener) Pipeline terminated with id ${event.id}, runId ${event.runId} and exception ${event.exception}")

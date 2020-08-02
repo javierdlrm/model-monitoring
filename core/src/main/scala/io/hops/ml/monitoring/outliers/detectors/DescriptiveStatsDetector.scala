@@ -3,48 +3,48 @@ package io.hops.ml.monitoring.outliers.detectors
 import io.hops.ml.monitoring.stats.StatValue
 import io.hops.ml.monitoring.utils.Constants.Outliers.DescriptiveStats
 import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
-import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
-case class DescriptiveStatsDetector(var statNames: Seq[String]) extends StatsOutlierDetector(statNames) {
+case class DescriptiveStatsDetector(var stats: Seq[String]) extends StatsOutliersDetector(stats) with OutliersDetector {
 
   override def name: String = DescriptiveStats
 
-  def detect(values: HashMap[String, StatValue], baseline: HashMap[String, StatValue]): HashMap[String, StatValue] = {
-
-    LoggerUtil.log.info(s"[DescriptiveStatsDetector] Detect in stats [${stats.mkString(", ")}], values: [$values]")
-
-    // check outliers per each defined stat
-    val outliers = stats.flatMap(stat => {
-      val observed = values(stat)
-      val reference = baseline(stat)
-      val isOutlier = DescriptiveStatsDetector.isOutlier(stat, observed.getDouble, reference.getDouble, baseline)
-
-      LoggerUtil.log.info(s"[DescriptiveStatsDetector] Outlier [$isOutlier], Stat [$stat], Observed [$observed], Reference [$reference]")
-
-      if (isOutlier) Some(stat -> observed)
-      else None
-    })
-
+  override def detect(values: HashMap[String, StatValue], baseline: HashMap[String, StatValue]): HashMap[String, StatValue] = {
+    val outliers = stats.flatMap(stat => checkOutlier(values(stat), stat, baseline))
     HashMap(outliers: _*)
+  }
+
+  override def detect(value: StatValue, baseline: HashMap[String, StatValue]): HashMap[String, StatValue] = {
+    val outliers = stats.flatMap(stat => checkOutlier(value, stat, baseline))
+    HashMap(outliers: _*)
+  }
+
+  private def checkOutlier(observed: StatValue, stat: String, baseline: HashMap[String, StatValue]): Option[(String, StatValue)] = {
+    val reference = baseline(stat)
+    val isOutlier = DescriptiveStatsDetector.isOutlier(stat, observed.getDouble, reference.getDouble, baseline)
+    if (isOutlier) Some(stat -> observed)
+    else None
   }
 }
 
 object DescriptiveStatsDetector {
+
+  val IntervalSigmas = 3 // certainty interval sigmas. Empirical rule: 68% (1-sigma), 95% (2-sigma), 99.7% (3-sigma)
+
   def isOutlier(stat: String, observed: Double, reference: Double, baseline: HashMap[String, StatValue]): Boolean = {
     stat match {
       case Descriptive.Max => observed > reference
       case Descriptive.Min => observed < reference
       case Descriptive.Mean => beyondStddevOutlier(observed, reference, baseline(Descriptive.Stddev).getDouble)
       case Descriptive.Avg => beyondStddevOutlier(observed, reference, baseline(Descriptive.Stddev).getDouble)
-      case Descriptive.Stddev => observed > reference * 2
+      case Descriptive.Stddev => observed > reference * IntervalSigmas
     }
   }
 
   private def beyondStddevOutlier(observed: Double, reference: Double, stddev: Double): Boolean = {
-    val upperBound = reference + stddev * 2
-    val lowerBound = reference - stddev * 2
+    val upperBound = reference + stddev * IntervalSigmas
+    val lowerBound = reference - stddev * IntervalSigmas
 
     observed < lowerBound || observed > upperBound
   }

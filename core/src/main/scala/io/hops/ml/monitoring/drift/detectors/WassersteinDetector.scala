@@ -3,7 +3,6 @@ package io.hops.ml.monitoring.drift.detectors
 import io.hops.ml.monitoring.stats.StatValue
 import io.hops.ml.monitoring.utils.Constants.Drift.Wasserstein
 import io.hops.ml.monitoring.utils.Constants.Stats.Descriptive
-import io.hops.ml.monitoring.utils.LoggerUtil
 
 import scala.collection.immutable.HashMap
 
@@ -30,7 +29,6 @@ case class WassersteinDetector(threshold: Double, showAll: Boolean = false) exte
   }
 
   def wasserstein(a: Seq[Double], b: Seq[Double]): Double = {
-    LoggerUtil.log.info(s"[WassersteinDetector] Detecting drift over: A [$a] and B [$b]")
 
     var lastDistance: Double = 0.0
     var totalDistance: Double = 0.0

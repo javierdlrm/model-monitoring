@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe.TypeTag
 object DataFrameUtil {
 
   implicit def explodeColumn(df: DataFrame): Object {
-    def explodeColumn(colName: String, schema: StructType): DataFrame} = new {
+    def explodeColumn(colName: String, schema: StructType): DataFrame } = new {
 
     // Explode column based on schema
     def explodeColumn(colName: String, schema: StructType): DataFrame = {

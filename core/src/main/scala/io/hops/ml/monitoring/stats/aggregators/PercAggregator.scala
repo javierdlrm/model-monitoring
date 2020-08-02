@@ -21,12 +21,8 @@ case class PercAggregator(perc: Perc) extends StatCompoundAggregator {
   def value: StatValue = StatMap(_value)
 
   override def compute(stats: HashMap[String, StatAggregator]): StatValue = {
-
     val distr = stats(Descriptive.Distr).value.getMap
-
-    LoggerUtil.log.info(s"[PercAggregator] Distr $distr")
     _value = percentiles(distr)
-
     this.value
   }
 
@@ -46,14 +42,10 @@ case class PercAggregator(perc: Perc) extends StatCompoundAggregator {
     var binIdx = 0
     var freqCount = filteredDistr(sortedKeys.head) // first frequency
 
-    LoggerUtil.log.info(s"[PercAggregator] SortedPerc: [$sortedPerc], SortedKeys: [$sortedKeys]")
-    LoggerUtil.log.info(s"[PercAggregator] NumBins: $numBins, Count: $count, Count2: ${filteredDistr.values.sum}")
-
     for (perc <- sortedPerc) {
       if (perc < 100) {
         percCount = perc / 100 * count
         while (freqCount <= percCount && binIdx < numBins) {
-          LoggerUtil.log.info(s"[PercAggregator] FreqCount: $freqCount, PercCount: $percCount, binIdx: $binIdx, numBins: $numBins")
           binIdx += 1
           freqCount += filteredDistr(sortedKeys(binIdx))
         }
