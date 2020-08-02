@@ -5,6 +5,7 @@ import java.sql.Timestamp
 import io.hops.ml.monitoring.drift.WindowDriftPipeJoint
 import io.hops.ml.monitoring.outliers.WindowOutliersPipeJoint
 import io.hops.ml.monitoring.stats.StatsPipeJoint
+import io.hops.ml.monitoring.utils.Constants.Vars.TimestampColName
 import io.hops.ml.monitoring.utils.Constants.Window._
 import io.hops.ml.monitoring.utils.DataFrameUtil.Encoders
 import io.hops.ml.monitoring.utils.{LoggerUtil, WindowUtil}
@@ -19,11 +20,11 @@ class WindowPipe(source: DataFrame, timestampCol: String, val setting: WindowSet
   // Window
 
   private def selectCols(cols: Seq[String]): DataFrame =
-    source.select(col(timestampCol) +: cols.map(colName => col(colName)): _*)
+    source.select(col(timestampCol) +: cols.map(colName => col(colName)): _*).withColumnRenamed(timestampCol, TimestampColName)
 
   private def applyWindow(df: DataFrame): DataFrame = {
-    val windowCol = window(col(timestampCol), WindowUtil.durationToString(setting.duration), WindowUtil.durationToString(setting.slideDuration))
-    df.withWatermark(timestampCol, WindowUtil.durationToString(setting.watermarkDelay))
+    val windowCol = window(col(TimestampColName), WindowUtil.durationToString(setting.duration), WindowUtil.durationToString(setting.slideDuration))
+    df.withWatermark(TimestampColName, WindowUtil.durationToString(setting.watermarkDelay))
       .withColumn(WindowColName, windowCol)
   }
 

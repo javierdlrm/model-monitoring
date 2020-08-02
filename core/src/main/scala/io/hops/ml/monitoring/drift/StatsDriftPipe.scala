@@ -1,13 +1,13 @@
 package io.hops.ml.monitoring.drift
 
-import io.hops.ml.monitoring.pipeline.SinkPipeJoint
-import io.hops.ml.monitoring.stats.{Baseline, StatValue}
+import java.sql.Timestamp
+
 import io.hops.ml.monitoring.drift.detectors.StatsDriftDetector
 import io.hops.ml.monitoring.pipeline.SinkPipeJoint
 import io.hops.ml.monitoring.stats.definitions.StatDefinition
 import io.hops.ml.monitoring.stats.{Baseline, StatValue}
 import io.hops.ml.monitoring.utils.Constants.Drift.DriftColName
-import io.hops.ml.monitoring.utils.Constants.Vars.{FeatureColName, TypeColName, ValueColName}
+import io.hops.ml.monitoring.utils.Constants.Vars.{DetectionTimeColName, FeatureColName, TypeColName, ValueColName}
 import io.hops.ml.monitoring.utils.Constants.Window.WindowColName
 import io.hops.ml.monitoring.utils.DataFrameUtil.{Encoders, Schemas}
 import io.hops.ml.monitoring.utils.LoggerUtil
@@ -30,7 +30,8 @@ class StatsDriftPipe(source: DataFrame, stats: Seq[String], detectors: Seq[Stats
     StructField(WindowColName, Schemas.structType[Window]()),
     StructField(FeatureColName, StringType),
     StructField(DriftColName, StringType),
-    StructField(ValueColName, DoubleType)
+    StructField(ValueColName, DoubleType),
+    StructField(DetectionTimeColName, TimestampType)
   )
   private val driftSchema = StructType(driftSchemaFields)
 
@@ -60,7 +61,7 @@ class StatsDriftPipe(source: DataFrame, stats: Seq[String], detectors: Seq[Stats
       val drift = detector.detect(values, featureStats)
 
       if (drift isDefined)
-        Some(Row(Seq(window, feature, detector.name, drift get): _*))
+        Some(Row(Seq(window, feature, detector.name, drift get, new Timestamp(System.currentTimeMillis())): _*))
       else
         None
     })

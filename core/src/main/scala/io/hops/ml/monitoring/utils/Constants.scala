@@ -33,11 +33,16 @@ object Constants {
   // Variable
 
   object Vars {
+    val TimestampColName = "timestamp"
+
     val FeatureColName = "feature"
     val TypeColName = "type"
 
     val ValueColName = "value"
     val ThresholdColName = "threshold"
+
+    val RequestTimeColName = "requestTime"
+    val DetectionTimeColName = "detectionTime"
 
     val NumericalColName = "numerical"
     val CategoricalColName = "categorical"

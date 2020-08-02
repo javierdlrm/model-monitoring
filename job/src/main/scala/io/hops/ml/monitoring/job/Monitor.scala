@@ -50,8 +50,8 @@ object Monitor {
     val timeColumnName = "timestamp"
     val requestCondition = col(s"logs.${Schemas.TypeColName}") === Schemas.Request
     val requestsDF = logsDF.filter(requestCondition)
-      .select(col(s"logs.${Schemas.TimeColName}") as timeColumnName, from_json(col(s"logs.${Schemas.PayloadColName}"), requestSchema) as 'requests) // add timestamp and parse json payload
-      .select(col(timeColumnName).cast("timestamp"), col("requests.instances") as 'instances) // extract requests
+      .select(col(s"logs.${Schemas.TimeColName}").cast("timestamp") as timeColumnName, from_json(col(s"logs.${Schemas.PayloadColName}"), requestSchema) as 'requests) // add timestamp and parse json payload
+      .select(col(timeColumnName), col("requests.instances") as 'instances) // extract requests
       .withColumn("instance", explode(col("instances"))).drop("instances") // explode instances
 
     // Initialize monitor
