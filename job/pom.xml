@@ -77,7 +77,35 @@
             <artifactId>circe-generic-extras_${scala.base}</artifactId>
             <version>${circe.version}</version>
         </dependency>
+
+        <!-- Hops -->
+        <dependency>
+            <groupId>io.hops</groupId>
+            <artifactId>hops-util</artifactId>
+            <version>${hops.utils.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.hops</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hops.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>Hops</id>
+            <name>Hops Repository</name>
+            <url>https://archiva.hops.works/repository/Hops/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
@@ -160,28 +188,28 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>com.spotify</groupId>
-                <artifactId>dockerfile-maven-plugin</artifactId>
-                <version>${dockerfile-maven-version}</version>
-                <executions>
-                    <execution>
-                        <id>default</id>
-                        <goals>
-                            <goal>build</goal>
-                            <goal>push</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <repository>${docker-image-name}</repository>
-                    <tag>${docker-image-tag}</tag>
-                    <buildArgs>
-                        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-                        <MODEL_MONITORING_JOB_DIR>${docker-image-model-monitoring-job-dir}</MODEL_MONITORING_JOB_DIR>
-                    </buildArgs>
-                </configuration>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>com.spotify</groupId>-->
+            <!--                <artifactId>dockerfile-maven-plugin</artifactId>-->
+            <!--                <version>${dockerfile-maven-version}</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>default</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>build</goal>-->
+            <!--                            <goal>push</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--                <configuration>-->
+            <!--                    <repository>${docker-image-name}</repository>-->
+            <!--                    <tag>${docker-image-tag}</tag>-->
+            <!--                    <buildArgs>-->
+            <!--                        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>-->
+            <!--                        <MODEL_MONITORING_JOB_DIR>${docker-image-model-monitoring-job-dir}</MODEL_MONITORING_JOB_DIR>-->
+            <!--                    </buildArgs>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 </project>
