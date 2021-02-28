@@ -134,7 +134,7 @@ object Constants {
     val SSLTruststoreLocation = "kafka.ssl.truststore.location"
     val SSLTruststorePassword = "kafka.ssl.truststore.password"
     val SSLKeystoreLocation = "kafka.ssl.keystore.location"
-    val SSLKeystorePassword = "kafka.ssl.keystore.location"
+    val SSLKeystorePassword = "kafka.ssl.keystore.password"
     val SSLKeyPassword = "kafka.ssl.key.password"
     val SSLEndpointIdentificationAlgorithm = "kafka.ssl.endpoint.identification.algorithm"
 
