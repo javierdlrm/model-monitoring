@@ -22,15 +22,17 @@ object MonitoringConfig {
     else {
       val opt = Json.extract[MonitoringConfig](monitoringConfigJson.get)
 
-      // check if baseline is defined
-      val config = if (opt.isEmpty || opt.get.baseline.isEmpty) return opt else opt.get
-
-      // update distr with baseline bounds
-      val distrIdx = config.stats.definitions.indexWhere(s => s.name == Descriptive.Distr)
-      if (distrIdx > 0) {
-        config.stats.definitions = config.stats.definitions.updated(distrIdx, Distr(config.baseline.get.map.getDistributionsBounds))
-        Some(config)
-      } else opt
+      // prepare config
+      if (opt.isEmpty || opt.get.baseline.isEmpty) opt else Some(prepare(opt.get))
     }
+  }
+
+  def prepare(config: MonitoringConfig): MonitoringConfig = {
+    // update distr with baseline bounds
+    val distrIdx = config.stats.definitions.indexWhere (s => s.name == Descriptive.Distr)
+    if (distrIdx >= 0) {
+      config.stats.definitions = config.stats.definitions.updated (distrIdx, Distr (config.baseline.get.map.getDistributionsBounds) )
+    }
+    config
   }
 }

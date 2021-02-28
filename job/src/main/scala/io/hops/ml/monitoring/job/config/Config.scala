@@ -1,12 +1,19 @@
 package io.hops.ml.monitoring.job.config
 
-import io.hops.ml.monitoring.job.utils.Constants
+import io.circe.Decoder
+import io.hops.ml.monitoring.job.utils.{Constants, Json}
+import io.hops.ml.monitoring.utils.LoggerUtil
 
 case class Config(modelInfo: ModelInfo, monitoringConfig: MonitoringConfig, storageConfig: StorageConfig, jobConfig: Option[JobConfig])
 
 object Config {
 
+  implicit val decodeConfig: Decoder[Config] =
+    Decoder.forProduct4("modelInfo", "monitoringConfig", "storageConfig", "jobConfig")(Config.apply)
+
   def getFromEnv: Config = {
+
+    LoggerUtil.log.info("[Monitor] Reading configuration from environment...")
 
     // Model info
     val modelInfoOpt = ModelInfo.getFromEnv
@@ -29,6 +36,26 @@ object Config {
     // Job config
     val jobConfig = JobConfig.getFromEnv
 
+    LoggerUtil.log.info(s"[Monitor] Configuration loaded")
+
     Config(modelInfo, monitoringConfig, storageConfig, jobConfig)
+  }
+
+  def getFromFile(file: String): Config = {
+
+    LoggerUtil.log.info("[Monitor] Reading configuration from file...")
+
+    val json = scala.io.Source.fromFile(file)
+    val configOpt = Json.extract[Config](json.mkString)
+    json.close()
+
+    val config = if (configOpt isEmpty) {
+      throw new Exception("Cannot extract the configuration")
+    } else configOpt.get
+
+    MonitoringConfig.prepare(config.monitoringConfig)
+
+    LoggerUtil.log.info(s"[Monitor] Configuration loaded")
+    config
   }
 }

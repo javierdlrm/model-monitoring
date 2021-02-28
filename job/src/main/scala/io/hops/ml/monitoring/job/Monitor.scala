@@ -4,11 +4,9 @@ import java.util.UUID
 
 import io.hops.ml.monitoring.io.dataframe.DataFrameSource._
 import io.hops.ml.monitoring.io.kafka.KafkaSettings
-import io.hops.ml.monitoring.io.kafka.KafkaSink._
 import io.hops.ml.monitoring.job.config.Config
 import io.hops.ml.monitoring.job.config.monitoring.{BaselineConfig, DriftConfig, OutliersConfig}
-import io.hops.ml.monitoring.job.config.storage.SinkConfig
-import io.hops.ml.monitoring.job.utils.Constants.{Job, Schemas}
+import io.hops.ml.monitoring.job.config.storage.{AnalysisSinkConfig, SinkConfig}
 import io.hops.ml.monitoring.monitor.MonitorPipe
 import io.hops.ml.monitoring.pipeline.{Pipeline, PipelineManager}
 import io.hops.ml.monitoring.stats.StatsPipe
@@ -16,6 +14,8 @@ import io.hops.ml.monitoring.stats.definitions.StatDefinition
 import io.hops.ml.monitoring.utils.RichOption._
 import io.hops.ml.monitoring.utils.{Constants, DataFrameUtil, LoggerUtil}
 import io.hops.ml.monitoring.window.{WindowPipe, WindowSetting}
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.avro.from_avro
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.streaming.{Milliseconds, Seconds}
@@ -23,9 +23,11 @@ import org.apache.spark.streaming.{Milliseconds, Seconds}
 object Monitor {
   def main(args: Array[String]) {
 
+    val confFile = parseArguments(args)
+
     // Prepare spark session and config
-    val config = Config.getFromEnv
-    val spark = createSparkSession(config)
+    val config = if (confFile.isDefined) Config.getFromFile(confFile.get) else Config.getFromEnv
+    val spark = createSparkSession()
 
     // Shortcuts
     val trigger = config.monitoringConfig.trigger
@@ -37,20 +39,21 @@ object Monitor {
     val analysis = config.storageConfig.analysis
 
     // Schemas
-    val messageSchema = DataFrameUtil.Schemas.structType[InferenceLoggerMessage]()
+    val messageSchema = Hops.getSchema(inference.kafka.topic.name)
     val requestSchema = DataFrameUtil.Schemas.structType(config.modelInfo.schemas.request)
     val instanceSchema = DataFrameUtil.Schemas.structType(config.modelInfo.schemas.instance)
     val cols = instanceSchema.map(_.name) // all feature names
 
     // Load streaming df
     val logsDF = readDF(spark, inference)
-      .select(from_json(col("value").cast("string"), messageSchema) as 'logs) // parse message
+      .select(from_avro(col("value"), messageSchema) as 'logs) // parse message
 
     // Requests df
     val timeColumnName = "timestamp"
-    val requestCondition = col(s"logs.${Schemas.TypeColName}") === Schemas.Request
-    val requestsDF = logsDF.filter(requestCondition)
-      .select(col(s"logs.${Schemas.TimeColName}").cast("timestamp") as timeColumnName, from_json(col(s"logs.${Schemas.PayloadColName}"), requestSchema) as 'requests) // add timestamp and parse json payload
+//    val requestCondition = col(s"logs.messageType") === Schemas.Request
+    val requestsDF = logsDF//.filter(requestCondition)
+      .select(col(s"logs.requestTimestamp").divide(1000).cast("timestamp") as timeColumnName, from_json(col(s"logs" +
+        s".inferenceRequest"), requestSchema) as 'requests) // add timestamp and parse json payload
       .select(col(timeColumnName), col("requests.instances") as 'instances) // extract requests
       .withColumn("instance", explode(col("instances"))).drop("instances") // explode instances
 
@@ -90,40 +93,47 @@ object Monitor {
     spark.close()
   }
 
-  def createSparkSession(config: Config): SparkSession = {
+  def createSparkSession(): SparkSession = {
+    val sparkConf: SparkConf = new SparkConf()
     SparkSession
-      .builder
-      .appName(Job.defaultJobName(config.modelInfo.name))
+      .builder()
+      .appName(Hops.getJobName)
+      .config(sparkConf)
+      .enableHiveSupport()
       .getOrCreate()
   }
 
   def readDF(spark: SparkSession, config: SinkConfig): DataFrame = {
-    spark.readStream.format(Constants.Kafka.Kafka)
-      .option(Constants.Kafka.BootstrapServers, config.kafka.brokers)
-      .option(Constants.Kafka.Subscribe, config.kafka.topic.name)
-      .option(Constants.Kafka.StartingOffsets, "earliest")
-      .load()
+    spark.readStream.format(Constants.Kafka.Kafka).
+      option("kafka.bootstrap.servers", Hops.getBrokerEndpoints).
+      option("subscribe", config.kafka.topic.name).
+      option("startingOffsets", "earliest").
+      option("kafka.security.protocol", "SSL").
+      option("kafka.ssl.truststore.location", Hops.getTrustStore).
+      option("kafka.ssl.truststore.password", Hops.getKeystorePwd).
+      option("kafka.ssl.keystore.location", Hops.getKeyStore).
+      option("kafka.ssl.keystore.password", Hops.getKeystorePwd).
+      option("kafka.ssl.key.password", Hops.getKeystorePwd).
+      option("kafka.ssl.endpoint.identification.algorithm", "").
+      load()
   }
 
-  def buildStatsPipeline(windowPipe: WindowPipe, cols: Seq[String], stats: Seq[StatDefinition], sink: SinkConfig): (StatsPipe, Pipeline) = {
+  def buildStatsPipeline(windowPipe: WindowPipe, cols: Seq[String], stats: Seq[StatDefinition], sink: AnalysisSinkConfig): (StatsPipe, Pipeline) = {
+    import io.hops.ml.monitoring.io.file.FileSink._
+
     val statsPipe = windowPipe.stats(cols, stats)
     val statsPipeline = statsPipe
       .output("StatsPipeline")
-      .kafka(KafkaSettings(
-        bootstrapServers = sink.kafka.brokers,
-        topic = Some(sink.kafka.topic.name)),
-        "/tmp/temporary-stats-" + UUID.randomUUID.toString)
+      .parquet(sink.parquet.files.prefix, s"/Projects/${Hops.getProjectName}${sink.parquet.directory}")
+
     (statsPipe, statsPipeline)
   }
 
   def buildOutliersPipeline(stats: MonitorPipe, cols: Seq[String], outliers: Option[OutliersConfig], sink: Option[SinkConfig], baseline: Option[BaselineConfig]): Option[Pipeline] = {
+    import io.hops.ml.monitoring.io.kafka.KafkaSink._
+
     if (outliers.isEmpty || outliers.get.valuesBased.isEmpty) return None
-    if (baseline isEmpty) {
-      LoggerUtil.log.info("[Monitor] Ignoring outliers detection. Baseline is required")
-      return None
-    }
-    if (sink isEmpty) {
-      LoggerUtil.log.info("[Monitor] Ignoring outliers detection. Storage definition is required")
+    if (baseline.isEmpty || sink.isEmpty) {
       return None
     }
 
@@ -131,27 +141,51 @@ object Monitor {
       .outliers(cols, outliers.get.valuesBased, baseline.get.map)
       .output("OutliersPipeline")
       .kafka(KafkaSettings(
-        bootstrapServers = sink.get.kafka.brokers,
-        topic = Some(sink.get.kafka.topic.name)),
-        "/tmp/temporary-outliers-" + UUID.randomUUID.toString))
+        bootstrapServers = Hops.getBrokerEndpoints,
+        topic = Some(sink.get.kafka.topic.name),
+        securityProtocol = Some("SSL"),
+        sslTruststoreLocation = Some(Hops.getTrustStore),
+        sslTruststorePassword = Some(Hops.getKeystorePwd),
+        sslKeystoreLocation = Some(Hops.getKeyStore),
+        sslKeystorePassword = Some(Hops.getKeystorePwd),
+        sslKeyPassword = Some(Hops.getKeystorePwd),
+        sslEndpointIdentificationAlgorithm = Some("")),
+        s"/Projects/${Hops.getProjectName}/Resources/Sales/Checkpoints/checkpoint-outliers-" + UUID.randomUUID.toString))
   }
 
   def buildDriftPipeline(stats: StatsPipe, drift: Option[DriftConfig], sink: Option[SinkConfig], baseline: Option[BaselineConfig]): Option[Pipeline] = {
+    import io.hops.ml.monitoring.io.kafka.KafkaSink._
+
     if (drift.isEmpty || drift.get.statsBased.isEmpty) return None
-    if (baseline isEmpty) {
-      LoggerUtil.log.info("[Monitor] Ignoring drift detection. Baseline is required")
-      return None
-    }
-    if (sink isEmpty) {
-      LoggerUtil.log.info("[Monitor] Ignoring drift detection. Storage definition is required")
+    if (baseline.isEmpty || sink.isEmpty) {
       return None
     }
     Some(stats
       .drift(drift.get.statsBased, baseline.get.map)
       .output("DriftPipeline")
       .kafka(KafkaSettings(
-        bootstrapServers = sink.get.kafka.brokers,
-        topic = Some(sink.get.kafka.topic.name)),
-        "/tmp/temporary-drift-" + UUID.randomUUID.toString))
+        bootstrapServers = Hops.getBrokerEndpoints,
+        topic = Some(sink.get.kafka.topic.name),
+        securityProtocol = Some("SSL"),
+        sslTruststoreLocation = Some(Hops.getTrustStore),
+        sslTruststorePassword = Some(Hops.getKeystorePwd),
+        sslKeystoreLocation = Some(Hops.getKeyStore),
+        sslKeystorePassword = Some(Hops.getKeystorePwd),
+        sslKeyPassword = Some(Hops.getKeystorePwd),
+        sslEndpointIdentificationAlgorithm = Some("")),
+        s"/Projects/${Hops.getProjectName}/Resources/Sales/Checkpoints/checkpoint-drift-" + UUID.randomUUID.toString))
+  }
+
+  def parseArguments(args: Array[String]): Option[String] = {
+    // Without arguments, configuration is read from the env vars
+    // Only one keyed argument allowed: --conf hdfs_conf_file_path
+    if (args.length == 2 && args.head == "--conf") {
+      return Some(args.last)
+    }
+    if (args.length != 0) {
+      LoggerUtil.log.error("Invalid arguments. None or one keyed argument allowed: '--conf hdfs_conf_file_path'")
+      System.exit(1)
+    }
+    None
   }
 }
