@@ -7,6 +7,7 @@ import io.hops.ml.monitoring.io.kafka.KafkaSettings
 import io.hops.ml.monitoring.job.config.Config
 import io.hops.ml.monitoring.job.config.monitoring.{BaselineConfig, DriftConfig, OutliersConfig}
 import io.hops.ml.monitoring.job.config.storage.{AnalysisSinkConfig, SinkConfig}
+import io.hops.ml.monitoring.job.utils.Constants.Schemas
 import io.hops.ml.monitoring.monitor.MonitorPipe
 import io.hops.ml.monitoring.pipeline.{Pipeline, PipelineManager}
 import io.hops.ml.monitoring.stats.StatsPipe
@@ -14,6 +15,7 @@ import io.hops.ml.monitoring.stats.definitions.StatDefinition
 import io.hops.ml.monitoring.utils.RichOption._
 import io.hops.ml.monitoring.utils.{Constants, DataFrameUtil, LoggerUtil}
 import io.hops.ml.monitoring.window.{WindowPipe, WindowSetting}
+import io.hops.util.Hops
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.avro.from_avro
 import org.apache.spark.sql.functions._
@@ -50,10 +52,10 @@ object Monitor {
 
     // Requests df
     val timeColumnName = "timestamp"
-//    val requestCondition = col(s"logs.messageType") === Schemas.Request
-    val requestsDF = logsDF//.filter(requestCondition)
-      .select(col(s"logs.requestTimestamp").divide(1000).cast("timestamp") as timeColumnName, from_json(col(s"logs" +
-        s".inferenceRequest"), requestSchema) as 'requests) // add timestamp and parse json payload
+    val requestCondition = col(s"logs.messageType") === Schemas.Request
+    val requestsDF = logsDF.filter(requestCondition)
+      .select(col(s"logs.requestTimestamp")/*.divide(1000)*/.cast("timestamp") as timeColumnName,
+        from_json(col(s"logs" + s".payload"), requestSchema) as 'requests) // add timestamp and parse json payload
       .select(col(timeColumnName), col("requests.instances") as 'instances) // extract requests
       .withColumn("instance", explode(col("instances"))).drop("instances") // explode instances
 
@@ -150,7 +152,9 @@ object Monitor {
         sslKeystorePassword = Some(Hops.getKeystorePwd),
         sslKeyPassword = Some(Hops.getKeystorePwd),
         sslEndpointIdentificationAlgorithm = Some("")),
-        s"/Projects/${Hops.getProjectName}/Resources/Sales/Checkpoints/checkpoint-outliers-" + UUID.randomUUID.toString))
+        s"/Projects/${Hops.getProjectName}/Resources/CardFraudDetection/Checkpoints/checkpoint-outliers-" + UUID
+          .randomUUID
+          .toString))
   }
 
   def buildDriftPipeline(stats: StatsPipe, drift: Option[DriftConfig], sink: Option[SinkConfig], baseline: Option[BaselineConfig]): Option[Pipeline] = {
@@ -173,7 +177,7 @@ object Monitor {
         sslKeystorePassword = Some(Hops.getKeystorePwd),
         sslKeyPassword = Some(Hops.getKeystorePwd),
         sslEndpointIdentificationAlgorithm = Some("")),
-        s"/Projects/${Hops.getProjectName}/Resources/Sales/Checkpoints/checkpoint-drift-" + UUID.randomUUID.toString))
+        s"/Projects/${Hops.getProjectName}/Resources/CardFraudDetection/Checkpoints/checkpoint-drift-" + UUID.randomUUID.toString))
   }
 
   def parseArguments(args: Array[String]): Option[String] = {

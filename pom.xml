@@ -27,7 +27,7 @@
     <scala.base>2.11</scala.base>
     <scala.version>2.11.12</scala.version>
     <hops.version>2.8.2.9</hops.version>
-    <hops.utils.version>1.3.0-SNAPSHOT</hops.utils.version>
+    <hops.utils.version>2.2.0-SNAPSHOT</hops.utils.version>
   </properties>
 
   <dependencies>
