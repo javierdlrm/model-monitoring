@@ -42,11 +42,7 @@ class Pipeline(val df: DataFrame, val queryName: String) extends java.io.Seriali
     } else {
       df.writeStream
         .queryName(queryName)
-        .foreachBatch((batchDF: DataFrame, _: Long) => {
-          batchDF.persist()
-          _sinks.foreach(sink => sink.save(batchDF))
-          batchDF.unpersist()
-        }).start
+        .foreachBatch(writeBatch _).start
     }
     _sq = Some(sq)
     (sq.id, sq.runId)
@@ -66,4 +62,11 @@ class Pipeline(val df: DataFrame, val queryName: String) extends java.io.Seriali
   def stop(): Unit = {
     _sq ! (_.stop)
   }
+
+  def writeBatch(batchDF: DataFrame, batchID: Long): Unit = {
+    batchDF.persist()
+    _sinks.foreach(sink => sink.save(batchDF))
+    batchDF.unpersist()
+  }
 }
+
